@@ -1,0 +1,253 @@
+主要目录：packages/apps/
+	Camera
+	Calender
+	Setttings
+	Launcher2
+	Gallery（图库）
+
+Android编译过程：
+	1.初始化参数设置
+	2.检查环境变量和目标环境
+	3.选择lunch并读取目标配置和平台信息
+	4.清空输出目录
+	5.编译
+	6.生成升级包
+
+执行source build/envsetup.sh后：
+	log输出including很多device目录下的.sh文件（脚本），这些文件会生成lunch()函数，和mmm/mm命令
+	执行lunch：选择分支、配置编译环境变量，指定输出目录
+	
+
+命令：mmm 目录
+	可以单独编译某个目录，并替换out目录下的文件
+
+
+
+
+------------------------------------------------------------------------------
+
+Android 启动过程：
+	1.启动脚本：
+		init守护进程
+		启动脚本语法
+		启动脚本解析
+		启动脚本中服务
+	2.zygote启动分析
+				
+
+init源码位置：system/core/init/init.c
+	init进程作用：创建第一个应用程序，创建目录，挂载分区，解析启动脚本，启动服务，守护服务
+	
+init系统中位置：/init
+
+
+init进程启动分析：
+	创建目录
+	klog_init() ： 将log重新定向到/proc/kmsg中
+	property_init() ： 初始化环境变量
+	get_hardware_name()：得到硬件信息和版本
+	process_kernel_cmdline()：解析内核启动参数
+	property_load_boot_defaults()：导入默认环境变量
+	get_kernel_cmdline_partitions()：得到系统分区
+
+
+
+
+------------------------------------------------------------------------------
+
+Android系统基本服务：
+	netd：网络管理
+	servicemanager：client与service通信管理
+	surfaceflinge：显示管理
+	zygote：创建APP应用服务，启动其他的服务，也是第一个JAVA服务
+	media：多媒体服务（audio、camera）
+	installd ：应用安装服务
+	bootaniml：开机动画
+
+	
+zygote服务的启动：
+	/system/bin/app_process -Xzygote
+	/system/bin --zygote --start-system-server
+	
+	app_process->调用AndroidRuntime.start()->startVM()创建JAVA虚拟机Dalvik，并注册Android系统核心函数gRegJNI 
+		->Call Static Void Method启动Zygote服务：StartZygote ZygoteInit.java.main();
+	
+Dalvik介绍：
+	基于Android平台基础，基于寄存器，运行文件格式.dex
+	可以在linux上运行多个dalivk实例，每个实例都是独立进程，一个挂掉不会影响其他
+	
+	主要参数：
+	dalvik.vm.starttheapsize 启动一个应用程序后分配内存，初始堆栈大小2-48M
+	dalvik.vm.heapsize 虚拟机给应用分配的最大内存
+	dalvik.vm.checkjni 调用外部jni链接库时做安全检查
+	dalvik.vm.execution-mode(执行模式):
+		int:portable 兼容性最高，执行效率最低
+		int:fast	快速自优化模式，兼容性和执行效率都很高，允许程序使用自己定义代码和模块，推荐使用
+		int:jit		效率最高，兼容性差
+
+
+
+
+zygote服务启动分析：
+	AndroidRuntime.start("com.android.internal.os.ZygoteInit,"start-system-server")启动
+	registZygoteSocket() :创建socket，和AMS通信
+	preload() : preloadClasses 加载目标类，preloadResources加载系统资源，preloadOpenGL 加载opengl
+	startSystemServer()：启动SystemServer
+	runSelectLoop() 接收并处理消息
+	
+	
+		启动SystemServer:
+			startSystemServer()
+			Zygote.forkSystemServer():创建子进程，并设置子进程信号处理函数nativeForkSystemServer()
+			handleSystemServerProcess():子进程中创建 system_server
+			zygoteInit：applicationInit():初始化引用
+			invokeStaticMain：得到应用的类名和方法，抛出异常，被try catch捕获后调用caller.run(),启动system_server
+			
+			如果system_server关闭了，zygote也会重启
+
+
+			
+zygote创建APP分析：
+	runSelectLoop
+	selectReadable：使用selecet监听连接
+	acceptCommandPeer：创建新的需求
+	runOnce():readArgumentList 读取请求内容，forkkAndSpecialize创建子进程，handleChildProc创建应用
+			
+			
+zygote预加载资源过程：
+	preloadClasses():类的定义在framework/base/preloaded-classes ,while读入文件，Class.forName(line)加载类，大约2秒
+	preloadResources():资源在framework/base/core/res/res/values/arrays.xml中，drawable:preloaded_drawables   color:preloaded_color_state_lists，大约1秒
+	preloadOpenGL():预加载OPengl的资源
+	预加载资源的目的，zygote调用fork()创建子进程的时候，APP就会把系统资源和类全部继承过来，启动应用时就会启动和运行速度	
+	可以使用线程池，分别加载类和资源，节省时间。{ 创建三个线程，调用三个方法，线程.start  线程.join }
+		
+			
+-------------------------------------------------------------------------------------------------------------
+
+
+内核coren -> foot.fs ->	bootUI(打开手机后显示的图片) -> 主luncher,解锁屏幕界面
+
+bootanim启动过程:
+	1.init.rc脚本中,bootanim是disabled的
+	2.启动界面依赖于android系统的surface管理服务,显示必须初始化完成
+	3.surfaceflinger服务完成后,才能显示开机界面
+	4.当system_server启动系统HomeUI的时候关闭bootanim
+	(图片参见[部分图片]文件夹,bootanim启动框架图)
+	
+bootanim工作流程见图片	
+
+bootanimation.zip 
+	位于 /system/media目录
+	文件：
+		part0（图片）
+		part1（图片）
+		desc.txt(描述文件)
+			384 320 20 ：分辨率的宽高，和帧率
+			p 1 0 part1 ：【p后面的第一个数字：1：显示1次， 0：循环播放】【第二个数字：休眠一定时间显示下一帧】【part1：图片的文件名】
+		（如果要替换文件，需要把压缩方式改为存储，详情看图片）
+
+
+
+---------------------------------------------------------------------------------------------------------------
+
+Android系统服务：
+	power：PMS（电源管理），BatteryService（电池服务）
+	AMS：Activity管理服务
+	PMS：程序包管理服务
+	WMS：窗口管理服务
+	TelephonyRegistry：电话服务
+	ContentService：跨进程数据交互服务
+	BluetoothService：蓝牙服务
+	
+	传感器服务：LightsService  光感 VibratorService 振动
+	网络服务：
+		NetworkManagementService 手机网络管理服务
+		NetworkStatusSerice 手机网络状态服务
+		WifiP2pService：p2p服务
+		WifiService：Wifi服务
+		ConnectivityService：网络连接状态服务
+		
+	其他服务……
+	
+	
+	
+Android system server启动过程：
+	zygote -> 	SystemServer.main ->	dalvik.set -> 	load android_servers lib 	->	nativeInit	 -> initAndLoop() ： 启动系统各个服务
+																							|
+																						init sensorserivce（传感器）
+	
+ServiceManager服务
+	服务进程，是Android系统中核心服务之一
+	系统服务管理：管理系统和应用向系统添加的服务
+	查询获取服务管理：响应client请求，并返回相应的服务
+	
+	1.根据init脚本定义，如果该服务连续几次异常退出，系统会重启
+	2.该服务重启，它将会重启media、zygote、surfaceflinger等服务
+	3.系统中的服务，或者应用调用其他服务，必须使用serviceManger提供的机制
+	
+	
+	
+ServiceManager启动过程：
+
+	binder_open(128*1024)  ->   open('/dev/binder')		->	mmap() 映射内存  ->  binder_become_context_manager()  
+	
+		-> binder_loop()  ->  svcmgr_handler()	-> 处理binder消息
+	
+	一般发送的binder消息为：查询、添加、获取服务
+	
+
+
+---------------------------------------------------------------------------------------------------------------------------
+
+PKMS作用
+	1.管理系统的jar包和apk，负责系统权限
+	2.负责程序的安装，卸载，更新，解析
+	3.对于其他应用和服务提供安装卸载服务
+	
+
+PKMS启动过程：
+	1.和intalld进行连接，进行安装卸载操作
+	2.创建PackageHandler线程，处理外部安装卸载请求
+	3.处理系统权限相关文件/system/etc/permission/*.xml
+	4.扫描安装jar包和apk，并得到安装包的信息
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
