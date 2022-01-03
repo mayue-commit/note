@@ -1184,7 +1184,9 @@ public class MainActivity extends AppCompatActivity {
         activityMainBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
 
       	//VM对象
-        nameViewModel = ViewModelProviders.of(this).get(NameViewModel.class);
+        nameViewModel = new ViewModelProvider(this,
+             ViewModelProvider.AndroidViewModelFactory.getInstance(getApplication()))
+                .get(NameViewModel.class);
         //新建一个观察者对象
         nameViewModel.getCurrentName().observe(this, new Observer<String>() {
             @Override
