@@ -2,81 +2,305 @@
 
 
 
-## Android 的三种动画：
+## 1、Android 的三种动画：
 
-- View Animation（补间动画）
+### 1.补间动画
+
+- View Animation
   - 只改变了View的绘制效果，属性值不变。AnimationSet类和Animation的子类。通常在res/anim下定义
+  - 这种动画属于普通动画，View移动了，但是View本身还在原地，点击原坐标仍然可以触发点击事件
+
+```xml
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:fillAfter="true">	<!-- android:fillAfter="true"表示动画结束后不回到原位-->
+    <translate
+        android:duration="1000"
+        android:fromXDelta="0"
+        android:toXDelta="300" />
+</set>
+```
+
+```java
+ btn.startAnimation(AnimationUtils.loadAnimation(this, R.anim.translate));
+```
 
 
 
 ```java
-	//纯代码的方式：
-	int startDegress = 0;
-	int endDegress = 90;
+//纯代码的方式：
+int startDegress = 0;
+int endDegress = 90;
 
-    text.setOnClickListener(new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            RotateAnimation animation = new RotateAnimation(startDegress, endDegress, v.getWidth() / 2, v.getHeight());
-            animation.setDuration(500);
-            animation.setFillAfter(true);	//保持动画结束的位置
-            animation.setStartOffset(500);	//延迟执行时间
-            v.startAnimation(animation);
+text.setOnClickListener(new View.OnClickListener() {
+    @Override
+    public void onClick(View v) {
+        RotateAnimation animation = new RotateAnimation(startDegress, endDegress, v.getWidth() / 2, v.getHeight());
+        animation.setDuration(500);
+        animation.setFillAfter(true);	//保持动画结束的位置
+        animation.setStartOffset(500);	//延迟执行时间
+        v.startAnimation(animation);
 
-            startDegress = endDegress;
-            endDegress += 90;
-        }
-    });
+        startDegress = endDegress;
+        endDegress += 90;
+    }
+});
 ```
 
-> 这种动画属于普通动画，View移动了，但是View本身还在原地，点击原坐标仍然可以触发点击事件
 
 
+### 2.帧动画
 
-- Drawable Animation（帧动画）
+- Drawable Animation
   - 加载一系列Drawble资源，使用AnimationDrawable类，在res/drawable 下定义
 
 
 
+### 3.属性动画
 
-
-- Property Animation（属性动画，3.0后引入的）
+- Property Animation（3.0后引入）
 
   - 动画的对象由View改为了Object，动画后Object的值被改变了，任何时候View属性的改变，都能自动调用invalidate() 来刷新
 
-  
+
+
+
+#### ①平移
 
 ```java
-        final TextView text = findViewById(R.id.text);
-        text.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //translationX就是补间动画的setxxx的那部分，所以也可以用来制作平移等动画
-                ObjectAnimator animator = ObjectAnimator.ofFloat(v, "translationX", 0, v.getWidth());  
-                ObjectAnimator animator2 = ObjectAnimator.ofFloat(v, "translationY", 0, v.getHeight());
-                AnimatorSet set = new AnimatorSet(); //设置一个动画集合一起播放
-                set.playTogether(animator, animator2);
-                set.setDuration(500);
-                set.start();
-            }
-        });
+final TextView text = findViewById(R.id.text);
+text.setOnClickListener(new View.OnClickListener() {
+    @Override
+    public void onClick(View v) {
+        //translationX就是补间动画的setxxx的那部分，所以也可以用来制作平移等动画
+        ObjectAnimator animator = ObjectAnimator.ofFloat(v, "translationX", 0, v.getWidth());  
+        ObjectAnimator animator2 = ObjectAnimator.ofFloat(v, "translationY", 0, v.getHeight());
+        AnimatorSet set = new AnimatorSet(); //设置一个动画集合一起播放
+        set.playTogether(animator, animator2);
+        set.setDuration(500);
+        set.start();
+    }
+});
 ```
 
 或者这样的写法：
 
 ```java
-        final TextView text = findViewById(R.id.text);
-        text.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                v.animate()
-                        .translationXBy(v.getWidth())
-                        .translationYBy(v.getHeight())
-                        .setDuration(2000)
-                        .setInterpolator(new BounceInterpolator()) //这个是带有动画效果
-                        .start();
-            }
-        });
+final TextView text = findViewById(R.id.text);
+text.setOnClickListener(new View.OnClickListener() {
+    @Override
+    public void onClick(View v) {
+        v.animate()
+            .translationXBy(v.getWidth())
+            .translationYBy(v.getHeight())
+            .setDuration(2000)
+            //在结束位置带有动画效果，弹几下
+            .setInterpolator(new BounceInterpolator()) 
+            .start();
+    }
+});
+```
+
+> translationX  也可以换成X， 表示最终的位置
+
+
+
+#### ②旋转
+
+围绕中心旋转
+
+```java
+btn.setOnClickListener(v -> {
+    ObjectAnimator animator = ObjectAnimator.ofFloat(btn, "rotation", btn.getRotation()+180);
+    //……
+});
+```
+
+> rotationX ，rotationY 围绕X/Y轴旋转
+
+
+
+#### ③透明度
+
+```java
+ObjectAnimator animator = ObjectAnimator.ofFloat(btn, "alpha",0,0.5f);
+```
+
+
+
+#### ④数值改变动画
+
+```JAVA
+private void changeTextValue(TextView textView){
+    ValueAnimator valueAnimator=ValueAnimator.ofFloat(0,100);
+    valueAnimator.setTarget(textView);
+    valueAnimator.setDuration(2000).start();
+    valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+        @Override
+        public void onAnimationUpdate(ValueAnimator animation) {
+            float value= (float) animation.getAnimatedValue();
+            textView.setText((int)value+"");
+        }
+    });
+}
+```
+
+
+
+
+
+#### ⑤注意事项
+
+要操作的属性必须有get /set 方法，不然属性动画无法生效，如果没有可以通过自定义一个属性类或包装类间接地给它增加get和set方法。
+
+
+
+```java
+public class MyView {
+    private View mTarget;
+
+    public MyView(View mTarget) {
+        this.mTarget = mTarget;
+    }
+
+    public int getWidth() {
+        return mTarget.getLayoutParams().width;
+    }
+
+    public void setWidth(int width) {
+        mTarget.getLayoutParams().width = width;
+        mTarget.requestLayout();
+    }
+
+    public int getHeight() {
+        return mTarget.getLayoutParams().height;
+    }
+
+    public void setHeight(int height) {
+        mTarget.getLayoutParams().height = height;
+        mTarget.requestLayout();
+    }
+}
+```
+
+```java
+ImageView imageView=findViewById(R.id.img);
+MyView myView=new MyView(imageView);
+ObjectAnimator.ofInt(btn,"width",500).setDuration(2000).start();
+ObjectAnimator.ofInt(btn,"height",500).setDuration(2000).start();
+```
+
+
+
+
+
+### 4.动画监听
+
+动画有四个过程：Start、Repeat、End、Cancel
+
+```java 
+ObjectAnimator animator=ObjectAnimator.ofFloat(btn,"alpha",1.5f);
+animator.addListener(new Animator.AnimatorListener() {
+    @Override
+    public void onAnimationStart(Animator animation) {
+
+    }
+
+    @Override
+    public void onAnimationEnd(Animator animation) {
+
+    }
+
+    @Override
+    public void onAnimationCancel(Animator animation) {
+
+    }
+
+    @Override
+    public void onAnimationRepeat(Animator animation) {
+
+    }
+});
+```
+
+ 也可以用适配器选择必要地事件进行监听：
+
+```java
+ObjectAnimator animator=ObjectAnimator.ofFloat(btn,"alpha",1.5f);
+animator.addListener(new AnimatorListenerAdapter() {
+    @Override
+    public void onAnimationEnd(Animator animation) {
+        super.onAnimationEnd(animation);
+    }
+});
+```
+
+
+
+
+
+
+
+
+
+## 2、ScrollTo和ScrollBy
+
+如果在ViewGroup中使用，则移动的是其所有的子view。
+
+> 如果直接对一个控件（如Button），使用btn.scrollTo()，则移动的是Button中的字体
+>
+> 它是移动屏幕，而不是控件，所以X,Y的值为负数是右下移动，正数则是左上移动
+>
+> 它是瞬间完成的动作
+
+| 方法名          | 具体功能                         |
+| --------------- | -------------------------------- |
+| scrollTo(x,y)   | 移动到一个具体的坐标             |
+| scrollBy(dx,dy) | 移动增量（最终也是调用scrollTo） |
+
+例如：
+
+```java
+//使btn的父布局整个向下偏移300，300个像素
+btn.setOnClickListener(v -> {
+    ((View)btn.getParent()).scrollTo(-300,-300);
+});
+```
+
+
+
+如果想要有过渡的滑动，可以使用Scroller配合完成
+
+```java
+public class CustomView extends View {
+    public CustomView(Context context, @Nullable AttributeSet attrs) {
+        super(context, attrs);
+        mScroller = new Scroller(context); //初始化mScroller
+    }
+
+    private Scroller mScroller;
+
+    @Override
+    public void computeScroll() {
+        super.computeScroll();
+        if (mScroller.computeScrollOffset()) {
+            //不断获取当前的滑动值，并用invalidate不断重新绘制
+            ((View) getParent()).scrollTo(mScroller.getCurrX(), mScroller.getCurrY());
+            invalidate();
+        }
+    }
+
+    //暴露给外部的移动动画
+    public void smoothScrollTo(int destX,int dextY){
+        int scrollX=getScrollX();
+        int scroolY=getScrollY();
+        mScroller.startScroll(scrollX,scroolY,destX-scrollX,dextY-scroolY,2000);
+        invalidate();
+    }
+}
+```
+
+```java
+customView.smoothScrollTo(-400,-400);
 ```
 
 
@@ -93,28 +317,50 @@
 
 
 
-# 二、点击事件分析
-
-点击事件不起作用的原因：可能是外层的view覆盖了内层的view，布局中，写在上面的控件优先加载，所以注意嵌套关系。
 
 
+
+
+
+
+# 二、自定义View的点击事件
+
+
+
+## 1、View被覆盖
+
+可能是外层的view覆盖了内层的view，内层的View点击事件就会失效。
+
+> 布局中，写在上面的控件优先加载，所以注意嵌套关系。
+
+
+
+## 2、点击和触摸同时存在
+
+因为事件会被消费，点击和触摸同时存在时，优先触发触摸事件。
+
+> 如果必须都有，则可以使用全局变量判断是触发何种事件。
+>
+> 在MotionEvent.ACTION_DOWN 中，设置为点击事件可用
+>
+> 在MotionEvent.ACTION_MOVE 中，根据实际情况的变量，设置不可用
+
+
+
+
+
+## 3、setEnabled(false) 后仍可点击
 
 view.setEnabled(false) 后，仍然可以点击的原因：可能是该view继承自viewgroup，代码设置了viewgroup不能够点击，但其中的view子类仍然能够点击。
 
 所以，需要遍历其子项，禁用所有的子view：
 
 ```java
-        for (int i = 0; i < viewGroup.getChildCount(); i++) {
-            View child=viewGroup.getChildAt(i);
-            child.setEnabled(false);
-        }
+for (int i = 0; i < viewGroup.getChildCount(); i++) {
+    View child=viewGroup.getChildAt(i);
+    child.setEnabled(false);
+}
 ```
-
-
-
-
-
-
 
 
 
@@ -123,6 +369,58 @@ view.setEnabled(false) 后，仍然可以点击的原因：可能是该view继�
 
 
 #    三、自定义View
+
+
+
+## 0、重要方法：
+
+① 三个构造参数
+
+context：用于在Activity直接new对象
+
+context ,attrs ：用于在xml中实例化对象
+
+context ,attrs ,style ：用于在xml中实例化对象，并带有style样式
+
+> 为什么能在XML中通过全类名找到对应的类文件？原理就是反射
+
+
+
+②关于坐标和布局
+
+| 方法名                                                     | 作用                           |
+| ---------------------------------------------------------- | ------------------------------ |
+| getX                                                       | 相对容器内的X距离              |
+| getRowX                                                    | 相对屏幕内的X距离              |
+|                                                            |                                |
+| invalidate();                                              | 刷新view                       |
+| layout(left,top,right,bottom);                             | 根据四个参数重新放置view的坐标 |
+| offsetLeftAndRight (offsetX) / offsetTopAndBottom(offsetY) | 偏移横坐标 /纵坐标             |
+|                                                            |                                |
+
+
+
+③关于控件自身
+
+| 方法名                        | 作用                                           |
+| ----------------------------- | ---------------------------------------------- |
+| getLayoutParams();            | 获取控件的参数，可以是本身的，也可以是父控件的 |
+| setLayoutParams(layoutParams) | 设置控件的参数                                 |
+
+```java
+//本身的
+ViewGroup.MarginLayoutParams layoutParams = (ViewGroup.MarginLayoutParams) getLayoutParams();
+layoutParams.leftMargin = getLeft() + offsetX;
+layoutParams.topMargin = getLeft() + offsetY;
+setLayoutParams(layoutParams);
+//父控件的，注意要和父控件的类型一致ConstraintLayout
+ConstraintLayout.LayoutParams layoutParams = (ConstraintLayout.LayoutParams) getLayoutParams();
+layoutParams.leftMargin = getLeft() + offsetX;
+layoutParams.topMargin = getTop() + offsetY;
+setLayoutParams(layoutParams);
+```
+
+
 
 **小技巧：**
 
@@ -135,42 +433,7 @@ canvas.drawBitmap(backgroundBitmap, 0, 0, paint);
 
 
 
-②获取X坐标的方式
-
-getX 是相对容器内的X距离
-getRowX 是相对屏幕内的X距离
-
-
-
-③ 刷新view的方式
-
-```
-invalidate();
-```
-
-> MotionEvent.ACTION_MOVE 中调用可以达到随手势移动，动态变化的效果
-
-
-
-④ 如果即有点击事件，又有触摸事件，建议使用变量判断触发哪一个
-
-在MotionEvent.ACTION_DOWN 中，设置为点击事件可用
-
-在MotionEvent.ACTION_MOVE 中，根据实际情况的变量，设置不可用
-
-
-
-
-
 **重要的方法：**
-
-① 三个构造参数
-
-context：用于在Activity直接new对象
-
-context ,attrs ：用于在xml中实例化对象
-
-context ,attrs ,style ：用于在xml中实例化对象，并带有style样式
 
 
 
@@ -192,9 +455,7 @@ context ,attrs ,style ：用于在xml中实例化对象，并带有style样式
 
 
 
-## 0、反射在自定义View中的使用
 
-为什么能在XML中通过全类名找到对应的类文件？原理就是反射
 
 
 
@@ -226,7 +487,8 @@ public class Main2Activity extends AppCompatActivity {
                     popupWindow.setContentView(listView);
                     popupWindow.setFocusable(true);
                 }
-                popupWindow.showAsDropDown(textView, 0, 0); //popWindow展示在哪个控件上，偏移量多少
+                //popWindow展示在哪个控件上，偏移量多少
+                popupWindow.showAsDropDown(textView, 0, 0); 
             }
         });
 
