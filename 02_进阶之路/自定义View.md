@@ -961,11 +961,179 @@ dispathTouchEvent 用于事件分发，所有事件都必须经过这个方法�
 
 
 
+# 五、案例
 
 
 
+## 1、自定义流式布局
+
+```java
+public class FlowLayout extends ViewGroup {
+    private static final String TAG = "FlowLayout";
+    private int mHorizontalSpacing = dp2px(16); //每个item横向间距
+    private int mVerticalSpacing = dp2px(8); //每个item横向间距
+
+    private List<List<View>> allLines = new ArrayList<>(); // 记录所有的行，一行一行的存储，用于layout
+    List<Integer> lineHeights = new ArrayList<>(); // 记录每一行的行高，用于layout
 
 
+    public FlowLayout(Context context) {
+        super(context);
+//        initMeasureParams();
+    }
+
+    //反射
+    public FlowLayout(Context context, AttributeSet attrs) {
+        super(context, attrs);
+//        initMeasureParams();
+    }
+
+    //主题style
+    public FlowLayout(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+//        initMeasureParams();
+    }
+    //四个参数 自定义属性
+
+    private void clearMeasureParams() {
+        allLines.clear();
+        lineHeights.clear();
+    }
+
+    //度量
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        //TODO：0.初始化工作
+        clearMeasureParams();//内存 抖动
+
+        //先度量孩子
+        int childCount = getChildCount();
+        int paddingLeft = getPaddingLeft();
+        int paddingRight = getPaddingRight();
+        int paddingTop = getPaddingTop();
+        int paddingBottom = getPaddingBottom();
+
+        //解析父亲给我的宽高
+        int selfWidth = MeasureSpec.getSize(widthMeasureSpec);  //ViewGroup解析的父亲给我的宽度
+        int selfHeight = MeasureSpec.getSize(heightMeasureSpec); // ViewGroup解析的父亲给我的高度
+
+        List<View> lineViews = new ArrayList<>(); //保存一行中的所有的view
+        int lineWidthUsed = 0; //记录这行已经使用了多宽的size
+        int lineHeight = 0; // 一行的行高
+
+        int parentNeededWidth = 0;  // measure过程中，子View要求的父ViewGroup的宽
+        int parentNeededHeight = 0; // measure过程中，子View要求的父ViewGroup的高
+
+        //TODO: 1:度量孩子 ，viewpager是先度量自己
+        for (int i = 0; i < childCount; i++) {
+            View childView = getChildAt(i);
+
+            LayoutParams childLP = childView.getLayoutParams();
+            if (childView.getVisibility() != View.GONE) {
+                //1.1、measure测量孩子的宽高
+                //将layoutParams转变成为 measureSpec
+                int childWidthMeasureSpec = getChildMeasureSpec(widthMeasureSpec, paddingLeft + paddingRight,
+                        childLP.width);
+                int childHeightMeasureSpec = getChildMeasureSpec(heightMeasureSpec, paddingTop + paddingBottom,
+                        childLP.height);
+                childView.measure(childWidthMeasureSpec, childHeightMeasureSpec);
+
+                //2.2、获取子view的度量宽高，判断是否超过父亲的宽度，超过则换行
+                int childMesauredWidth = childView.getMeasuredWidth();
+                int childMeasuredHeight = childView.getMeasuredHeight();
+
+                //2.2.2 行满需要换行
+                if (childMesauredWidth + lineWidthUsed + mHorizontalSpacing > selfWidth) {
+
+                    //一旦换行，我们就可以判断当前行需要的宽和高了，所以此时要记录下来
+                    allLines.add(lineViews);
+                    lineHeights.add(lineHeight);
+
+
+                    parentNeededHeight = parentNeededHeight + lineHeight + mVerticalSpacing;
+                    parentNeededWidth = Math.max(parentNeededWidth, lineWidthUsed + mHorizontalSpacing);
+
+                    lineViews = new ArrayList<>();
+                    lineWidthUsed = 0;
+                    lineHeight = 0;
+                }
+
+                //2.2.1 不换行
+                // view 是分行layout的，所以要记录每一行有哪些view，这样可以方便layout布局
+                lineViews.add(childView);
+                //每行都会有自己的宽和高，计算本行中的宽度和高度
+                lineWidthUsed = lineWidthUsed + childMesauredWidth + mHorizontalSpacing;
+                lineHeight = Math.max(lineHeight, childMeasuredHeight);
+
+                //2.2.3、处理最后一行数据
+                if (i == childCount - 1) {
+                    allLines.add(lineViews);
+                    lineHeights.add(lineHeight);
+                    parentNeededHeight = parentNeededHeight + lineHeight + mVerticalSpacing;
+                    parentNeededWidth = Math.max(parentNeededWidth, lineWidthUsed + mHorizontalSpacing);
+                }
+
+            }
+        }
+
+        //TODO 2:再度量自己,保存
+        //根据子View的度量结果，来重新度量自己ViewGroup
+        // 作为一个ViewGroup，它自己也是一个View,它的大小也需要根据它的父亲给它提供的宽高来度量
+        int widthMode = MeasureSpec.getMode(widthMeasureSpec);
+        int heightMode = MeasureSpec.getMode(heightMeasureSpec);
+
+        int realWidth = (widthMode == MeasureSpec.EXACTLY) ? selfWidth: parentNeededWidth;
+        int realHeight = (heightMode == MeasureSpec.EXACTLY) ?selfHeight: parentNeededHeight;
+        setMeasuredDimension(realWidth, realHeight);
+    }
+
+    //布局，ViewGroup当中才需要布局
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        int lineCount = allLines.size();
+
+        int curL = getPaddingLeft();
+        int curT = getPaddingTop();
+
+        //遍历行
+        for (int i = 0; i < lineCount; i++){
+            //获取到每一行的View
+            List<View> lineViews = allLines.get(i);
+            int lineHeight = lineHeights.get(i);
+
+            //遍历列
+            for (int j = 0; j < lineViews.size(); j++){
+                View view = lineViews.get(j);
+                //当前View的左上坐标
+                int left = curL;
+                int top =  curT;
+                //当前View的右下坐标
+                 int right = left + view.getMeasuredWidth();
+                 int bottom = top + view.getMeasuredHeight();
+                 //放置这个View
+                 view.layout(left,top,right,bottom);
+                 //下个View得左边的要加上间隙
+                 curL = right + mHorizontalSpacing;
+            }
+
+            //遍历完当前行的所有列后，计算下一行的 左上角坐标
+            curT = curT + lineHeight + mVerticalSpacing;
+            curL = getPaddingLeft();
+        }
+
+    }
+
+//    @Override
+//    protected void onDraw(Canvas canvas) {
+//        super.onDraw(canvas);
+//    }
+
+    public static int dp2px(int dp) {
+        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, Resources.getSystem().getDisplayMetrics());
+    }
+
+}
+```
 
 
 
