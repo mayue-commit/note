@@ -368,6 +368,111 @@ class C with A,B{
 
 
 
+# 二、异步
+
+## 1、通信基础
+
+dart是单线程，内存隔离
+
+一个Isolate相当于一个进程，有自己独立的内存和数据，和当前是隔离的，不用担心多线程的资源抢夺问题
+
+```dart
+int a = 0;
+
+void multiThreat(){
+  //创建一个Isolate,设置初始值，在fun中执行(类似于多线程执行)
+  //参数1接受一个方法，参数二是方法一的参数
+  Isolate.spawn(test1, 10);
+  sleep(Duration(seconds: 1));
+  print("isolate回来之后a的值==$a"); //0
+}
+
+void test1(int count){
+  a = count;
+  print("isolate执行完毕1===$count"); //1
+  print("修改之后的a的值==$a"); //1
+}
+```
+
+
+
+
+
+消息接收器：可以单向地传递消息
+
+```dart
+void main(){
+    //消息接收器
+    var receiverPort = ReceivePort();
+    //监听接收到的消息
+    receiverPort.listen((message) {
+        print('msg=${message}');
+        print('111');
+    });
+    //异步，并把消息接收器给Isolate对象
+    Isolate.spawn(entryPoint,  receiverPort.sendPort);
+    sleep(Duration(seconds: 2));
+}
+
+void entryPoint(SendPort sendPort) {
+    //利用entryPoint 就可以给main发送消息了
+    sendPort.send("22");
+    print('22');
+}
+```
+
+
+
+
+
+
+
+双向发送：
+
+```dart
+void main() {
+    ReceivePort receiverPort = new ReceivePort();
+    //开启异步
+    Isolate.spawn(entryPoint, receiverPort.sendPort);
+
+    //监听B给Main的消息
+    receiverPort.listen((t) {
+        if (t is SendPort) {
+            print("main给B发送消息 ，内容为：收到收到");
+            t.send("收到收到!");
+        } else
+            print("main接收到 B  发来的消息~~~~~" + t);
+    });
+    //由于这里是单线程,所以main函数这个，要执行lis中的内容，也必须要等休眠结束
+    sleep(Duration(seconds: 2)); 
+}
+
+void entryPoint(SendPort sendPort) {
+    sendPort.send("我是B，我给main 发消息啦");
+    //B也拥有自己的receiverPort，并发送给Main
+    ReceivePort receiverPort = new ReceivePort();
+    sendPort.send(receiverPort.sendPort);
+    //监听Main的消息
+    receiverPort.listen((t) {
+        print("B接收到 main 的消息~~~~~" + t);
+    });
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
