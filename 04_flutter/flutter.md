@@ -166,6 +166,15 @@ I/flutter (22218): child dispose......
 
 
 
+## 2、常见的布局容器
+
+### 1.居中容器：
+
+子View只有一个
+
+```dart
+ Center(child: Text("第一行代码"),)
+```
 
 
 
@@ -173,10 +182,21 @@ I/flutter (22218): child dispose......
 
 
 
+### 2.列容器
 
+多个子View，顺序排列
 
-
-
+```dart
+Column(
+    mainAxisAlignment: MainAxisAlignment.center,  //指定对其方式
+    children: <Widget>[ 
+        // List<Widget> list=getWidget(strs);
+        _TextBody(strs[0]),
+        _TextBody(strs[1]),
+        _TextBody(strs[2]),
+        _TextBody(strs[0]),
+    ])
+```
 
 
 
