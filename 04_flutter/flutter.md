@@ -1,8 +1,20 @@
-# 一、Widget
+一、Widget
 
 Flutter中，几乎所有的对象都是一个`Widget`，它不仅可以表示UI元素，也可以表示一些功能性的组件如：用于手势检测的 `GestureDetector widget`、用于应用主题数据传递的`Theme`等等。
 
 实际上，Flutter中真正代表屏幕上显示元素的类是`Element`，也就是说Widget只是描述`Element`的一个配置。一个Widget可以对应多个`Element`，同一个Widget对象可以被添加到UI树的不同部分，而真正渲染时，UI树的每一个节点都会对应一个`Element`对象。
+
+框架强制根Widget覆盖整个屏幕。
+
+
+
+
+
+## 0、快速定为Widget技巧
+
+![image-20220313233600692](flutter.assets/image-20220313233600692.png)
+
+
 
 
 
@@ -77,7 +89,7 @@ class _MyApppState extends State<MyApp> {
 }
 ```
 
-> Scaffold 中还有appBar、FloatingActionButton、drawer、endDrawer、backgroundColor、bottomNavigationBar……等等
+> Scaffold 是 Material library 中提供的一个widget, 它提供了默认的导航栏、标题和包含主屏幕widget树的body属性。Scaffold 中还有appBar、FloatingActionButton、drawer、endDrawer、backgroundColor、bottomNavigationBar……等等
 
 
 
@@ -166,11 +178,369 @@ I/flutter (22218): child dispose......
 
 
 
-## 2、常见的布局容器
 
-### 1.居中容器：
+
+
+
+
+
+## 2、常见控件
+
+### 1.Text
+
+默认的Text样式选择：
+
+```dart
+Text(
+    '今天不上班，明天不上班，今天不上班，明天不上班今天不上班，明天不上班',
+    textAlign: TextAlign.right,
+    //对齐方式
+    style: TextStyle(
+        fontSize: 16.0, //字体大小
+        color: Color.fromARGB(96, 96, 96, 100), //字体颜色
+        fontWeight: FontWeight.w900, //字体粗细
+        fontStyle: FontStyle.italic, //斜体
+        
+        //underline：下划线，overline：上划线，lineThrough：删除线
+        decoration: TextDecoration.lineThrough,//中划线 
+        decorationColor: Colors.red, //中划线的颜色
+        //solid：实线，double：双线，dotted：点虚线，dashed：横虚线，wavy：波浪线
+        decorationStyle: TextDecorationStyle.dashed,//中划线是虚线
+        
+        letterSpacing: 10.0 ,//字间距
+    ),
+    overflow: TextOverflow.ellipsis,
+    //溢出的处理方式
+    maxLines: 1,
+    textScaleFactor: 2, //字体缩放倍数
+),
+```
+
+
+
+
+
+不同颜色的Text，类似Spannable的作用：
+
+```dart
+Widget _RichTextBody() {
+  var textSpan = TextSpan(
+    text: "Hello",
+    style: TextStyle(color: Colors.red),
+    children: [
+      TextSpan(text: "Flu", style: TextStyle(color: Colors.blue)),
+      TextSpan(text: "uter", style: TextStyle(color: Colors.yellow)),
+    ],
+  );
+  //Text.rich(textSpan);
+  return RichText(text: textSpan);
+}
+```
+
+
+
+
+
+如果在widget树的某一个节点处设置一个默认的文本样式，那么该节点的子树中所有文本都会默认使用这个样式：
+
+```dart
+Widget _DefaultStyle(){
+  return DefaultTextStyle(
+    //设置文本默认样式
+    style: TextStyle(
+      color:Colors.red,
+      fontSize: 20.0,
+    ),
+    textAlign: TextAlign.start,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text("Hello Flutter!"), //使用默认样式
+        Text("Hello Flutter!"), //使用默认样式
+        Text("Hello Flutter!",
+          style: TextStyle(
+              inherit: false, //不继承默认样式
+              color: Colors.grey
+          ),
+        ),
+      ],
+    ),
+  );
+}
+```
+
+
+
+
+
+
+
+### 2.图片
+
+| 方式          | 解释                                                        |
+| ------------- | ----------------------------------------------------------- |
+| Image()       | 使用ImageProvider提供图片，如下方法本质上也是使用的这个方法 |
+| Image.asset   | 加载资源图片                                                |
+| Image.file    | 加载本地图片文件                                            |
+| Image.network | 加载网络图片                                                |
+| Image.memory  | 加载内存图片                                                |
+
+
+
+#### ① Image.asset
+
+加载资源图片
+
+在工程目录下创建目录，如：assets，将图片放入此目录。打开项目根目录：pubspec.yaml
+
+```yaml
+flutter:
+  
+  uses-material-design: true
+  #加入这句话
+  assets:
+    - assets/
+```
+
+使用：
+
+```dart
+Image.asset("assets/QQ.png");
+```
+
+
+
+#### ② Image.network
+
+加载网络图片
+
+```dart
+Image.network(
+        "http://pic.baike.soso.com/p/20130828/20130828161137-1346445960.jpg",
+        width:200,
+        height: 200,
+        alignment: Alignment.center, //图片在控件内的对齐方式
+        //fill 全图显示，被拉伸变形并充满 contain：全图原比例，可能有空隙  cover：可能拉伸裁切，充满容器不变型
+        fit: BoxFit.cover,
+        //多余的空间重复加载图片
+        // repeat: ImageRepeat.repeatX,
+      ),
+    );
+```
+
+
+
+
+
+#### ③ 圆角图片
+
+方法一：把图片放进Container中，给容器设置圆角属性
+
+```dart
+Container(
+      width: 500,
+      height: 500,
+      decoration:BoxDecoration(
+        borderRadius:BorderRadius.circular(150),
+        image:DecorationImage(
+          image:NetworkImage( "http://pic.baike.soso.com/p/20130828/20130828161137-1346445960.jpg"),
+          fit: BoxFit.cover,
+        ),
+      )
+```
+
+方法二：ClipOval
+
+```dart
+ClipOval(
+        child: Image.network(
+          "http://pic.baike.soso.com/p/20130828/20130828161137-1346445960.jpg",
+          width: 300,
+          height: 300,
+          fit: BoxFit.cover,
+        ),
+      )
+```
+
+
+
+
+
+
+
+### 3.Icon
+
+小图标
+
+```dart
+Icon(
+    Icons.settings,
+    size: 40,
+    color: Colors.blue,
+)
+```
+
+
+
+
+
+### 4.按钮
+
+
+
+#### ①RaisedButton
+
+RaisedButton（过时）：2.X后替换为ElevatedButton
+
+FlatButton（过时）：扁平化的按钮，用法一致，不带阴影，2.X后替换为TextButton
+
+
+
+
+
+
+
+```dart
+Container(
+    //设置按钮的宽高
+    width: 200,
+    height: 50,
+    child: RaisedButton(
+        //圆角属性
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10)
+        ),
+        onPressed: () {},
+        color: Colors.blue,
+        textColor: Colors.white,
+        child: Text("按钮"),
+    ),
+);
+```
+
+圆形按钮：
+
+```dart
+shape: CircleBorder(
+    //边线
+    side: BorderSide(color: Colors.black)
+),
+```
+
+
+
+带Icon的按钮：
+
+```dart
+Container(
+    //设置按钮的宽高
+    width: 200,
+    height: 50,
+    child: RaisedButton.icon(
+        //按钮样式
+        icon: Icon(Icons.search),
+        //child改为了label
+        label: Text("按钮"),
+        onPressed: () {},
+        color: Colors.blue,
+        textColor: Colors.white,
+    ),
+);
+```
+
+
+
+#### ②IconButton
+
+AppBar上的小图标
+
+```dart
+MaterialApp(
+    home: Scaffold(
+        appBar: AppBar(
+            title: Text('Flutter Image'),
+            //配合actions
+            actions: <Widget>[
+                IconButton(
+                    icon: Icon(Icons.settings),
+                    onPressed: () {},
+                ),
+            ],
+        ),
+        body: HomeContent(),
+    ),
+);
+```
+
+
+
+
+
+#### ③ElevatedButton
+
+升级后的2.X中的Button组件
+
+```dart
+Container(
+      //设置按钮的宽高
+      width: 200,
+      height: 50,
+      child: ElevatedButton(
+        child: Text("按钮"),
+        onPressed: () {},
+        style: ButtonStyle(
+          //背景色
+          backgroundColor: MaterialStateProperty.all(Colors.red),
+          //按钮色
+          foregroundColor: MaterialStateProperty.all(Colors.white),
+          //圆角
+          shape: MaterialStateProperty.all(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+      ),
+    );
+```
+
+
+
+
+
+
+
+
+
+### 5.SizedBox
+
+用于控件之间间隔
+
+```
+SizedBox(width: 50,),
+```
+
+```
+SizedBox(height: 50,),
+```
+
+
+
+
+
+
+
+
+
+## 3、常见的布局容器
+
+### 1.单个子容器：
 
 子View只有一个
+
+
+
+#### ①Center：
+
+此控件会自动采用父容器的宽度，居中：
 
 ```dart
  Center(child: Text("第一行代码"),)
@@ -180,22 +550,393 @@ I/flutter (22218): child dispose......
 
 
 
+#### ②Container：
+
+能指定宽高的容器，不指定宽高则默认为0，child 默认左上角
+
+```dart
+Container(
+    child: Text('你好'),
+    height: 300.0,
+    width: 300.0,
+    //外边距
+    padding: EdgeInsets.all(10),
+    //内边距
+    margin: EdgeInsets.fromLTRB(10, 30, 5, 0),
+    //旋转、位移等
+    // transform: Matrix4.translationValues(0, 100, 0),
+    transform: Matrix4.rotationX(0.3),
+    //內部元素对齐方式
+    alignment: Alignment.center,
+    //指定背景
+    decoration: BoxDecoration(
+        //背景颜色
+        color: Colors.blue,
+        //边线
+        border: Border.all(
+            //边线颜色
+            color: Colors.black, 
+            //线宽
+            width: 2.0, 
+            //圆角
+            borderRadius: BorderRadius.all(Radius.circular(20.0)),
+        )));
+}
+```
 
 
-### 2.列容器
+
+
+
+
+
+#### ③Padding
+
+指定内边距的组件
+
+```dart
+return Padding(
+      padding: EdgeInsets.all(100),
+      child: Text(listData[index]["title"]),
+    );
+```
+
+
+
+
+
+#### ④Expanded
+
+类似于Android 中的weight
+
+```dart
+Column(children: <Widget>[
+      Expanded(flex: 1, child: Container(color: Colors.blue)),
+      Expanded(flex: 2, child: Container(color: Colors.red)),
+    ]);
+```
+
+
+
+
+
+### 2.多个子容器
+
+
+
+#### ①Row/Colum
 
 多个子View，顺序排列
 
+行：Row
+
+列：Column
+
+
+
+主轴（Row中为X，Column为Y）：mainAxisAlignment
+
+次轴（相反）：crossAxisAlignment
+
 ```dart
 Column(
-    mainAxisAlignment: MainAxisAlignment.center,  //指定对其方式
-    children: <Widget>[ 
-        // List<Widget> list=getWidget(strs);
-        _TextBody(strs[0]),
-        _TextBody(strs[1]),
-        _TextBody(strs[2]),
-        _TextBody(strs[0]),
+    mainAxisAlignment: MainAxisAlignment.center,  //主轴对其方式
+    mainAxisSize: MainAxisSize.min, //主轴的距离
+    children: <Widget>[
+        new Text('Hello, world!', textDirection: TextDirection.ltr,),
+        new Text('Hello, world!', textDirection: TextDirection.ltr,),
+        new Text('Hello, world!', textDirection: TextDirection.ltr,),
+        new Text('Hello, world!', textDirection: TextDirection.ltr,),
     ])
+```
+
+
+
+
+
+
+
+扩展：Wrap组件，流式布局
+
+Row在一行显示不下的时候，不会自动换行，边界处会出现黄黑色斑马线。wrap组件能帮助我们实现换行功能，直接替换即可
+
+```
+Wrap(
+        //子项的间距
+        spacing: 50,
+        //行间距
+        runSpacing: 20
+        children: <Widget>[
+          new Text('Hello, world!Hello, world!Hello, world!', ),
+          new Text('Hello, world!',),
+          new Text('Hello, world!Hello, world!', ),
+          new Text('Hello, world!',),
+        ]);
+```
+
+
+
+
+
+
+
+#### ②ListTile
+
+包含四个子Widget：leading，title，subtitle，trailing
+
+```dart
+ListTile(
+    onTap: () {
+      //点击事件
+    },
+    leading: new CircleAvatar(
+        backgroundColor: Colors.black,
+        child: new Text("hello"),
+    ),
+    title: new Text(product.name, style: _getTextStyle(context)),
+    //xxx
+);
+```
+
+<img src="flutter.assets/image-20220310211516478.png" alt="image-20220310211516478" style="zoom:50%;" />
+
+
+
+
+
+
+
+#### ③ListView
+
+==注意：==
+
+listView如果是垂直布局，直接放在App的child当中，宽度会默认充满屏幕。水平方向则高度充满屏幕。
+
+可以外层嵌套指定宽度/高度的Container组件
+
+
+
+##### 3.1  静态列表
+
+listView中不像Android，不需要固定格式，可以嵌套任意Widget
+
+```dart
+ListView(
+    children: <Widget>[
+        Icon(
+            Icons.settings,
+            size: 40,
+            color: Colors.blue,
+        ),
+        ListTile(
+            leading: Icon(Icons.set_meal),
+            title: Text("吃饭"),
+            subtitle: Text("吃亏了吗"),
+        ),
+        Text("撒大大"),
+    ],
+);
+```
+
+指定方向：
+
+```
+scrollDirection: Axis.horizontal,
+```
+
+
+
+
+
+##### 3.2 动态列表
+
+```dart
+class HomeContent extends StatelessWidget {
+  List<Widget> _getData() {
+    var temList=listData.map((value){
+      //使用map方法把数据转换成集合,value就是转换后的数据
+      return ListTile(
+        leading: Image.network(value["imageUrl"]),
+        title:Text(value["title"]) ,
+        subtitle: Text(value["author"]),
+      );
+    });
+    print(temList);
+    return temList.toList(); //因为map转换后是一个jsonArray的形式，所以需要toList
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      children:_getData(),
+    );
+  }
+}
+```
+
+
+
+附：假如请求回来的数据是这样的。
+
+```dart
+List listData=[
+      {
+          "title": 'Candy Shop',
+          "author": 'Mohamed Chahin',
+          "imageUrl": 'https://www.itying.com/images/flutter/1.png',
+      },
+       {
+          "title": 'Childhood in a picture',
+          "author": 'Google',
+          "imageUrl": 'https://www.itying.com/images/flutter/2.png',
+      },
+      {
+          "title": 'Alibaba Shop',
+          "author": 'Alibaba',
+          "imageUrl": 'https://www.itying.com/images/flutter/3.png',
+      },
+      {
+          "title": 'Candy Shop',
+          "author": 'Mohamed Chahin',
+          "imageUrl": 'https://www.itying.com/images/flutter/4.png',
+      },
+       {
+          "title": 'Tornado',
+          "author": 'Mohamed Chahin',
+          "imageUrl": 'https://www.itying.com/images/flutter/5.png',
+      },
+      {
+          "title": 'Undo',
+          "author": 'Mohamed Chahin',
+          "imageUrl": 'https://www.itying.com/images/flutter/6.png',
+      },
+      {
+          "title": 'white-dragon',
+          "author": 'Mohamed Chahin',
+          "imageUrl": 'https://www.itying.com/images/flutter/7.png',
+      }      
+
+  ];
+```
+
+
+
+
+
+
+
+
+
+##### 3.3 Builder构造
+
+通过builder对象构造listView，类似于Android 中的adpter
+
+```dart
+class HomeContent extends StatelessWidget {
+  var list = [];
+
+  HomeContent() {
+    for (var i = 0; i < 20; i++) {
+      list.add("i am $i");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+        itemCount: list.length,
+        itemBuilder: (context, index) {
+          return ListTile(
+            title: Text(list[index]),
+          );
+        });
+  }
+}
+```
+
+
+
+同样是上面的数据
+
+```dart
+class HomeContent extends StatelessWidget {
+  Widget _getData(context, index) {
+    return ListTile(
+      title: Text(listData[index]["title"]),
+      leading: Image.network(listData[index]["imageUrl"]),
+      subtitle: Text(listData[index]["author"]),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemCount: listData.length,
+      itemBuilder: _getData, //注意，这里是直接将getData赋值给了itemBuidler，而不是执行
+    );
+  }
+}
+```
+
+
+
+
+
+
+
+#### ④Stack
+
+类似于帧布局
+
+```dart
+Stack(
+    //指定所有子控件的对齐方式，Alignment 的取值是X，Y，范围从 -1 到 1 ，0表示控件中心
+    alignment: Alignment(1, 1),
+    children: <Widget>[
+        Container(
+            height: 400,
+            width: 300,
+            color: Colors.red,
+        ),
+        Text(
+            "文本",
+            style: TextStyle(fontSize: 20, color: Colors.white),
+        ),
+    ],
+);
+```
+
+
+
+##### 4.1 Align
+
+用于在Stack中指定子Widget的布局方式
+
+```dart
+Align(
+    alignment: Alignment.topCenter,
+    child: Text(
+        "666",
+        style: TextStyle(fontSize: 20, color: Colors.white),
+    ),
+)
+```
+
+
+
+##### 4.2 Positioned 
+
+和Align基本相同，指定左上距离
+
+```dart
+Positioned(
+    left: 300,
+    top: 200,
+    child: Text(
+        "666",
+        style: TextStyle(fontSize: 20, color: Colors.black),
+    ),
+)
 ```
 
 
@@ -208,11 +949,77 @@ Column(
 
 
 
+## 二、路由
+
+```dart
+void main() {
+ runApp(MaterialApp(
+   home: MyAppHome(), // Becomes the route named '/'.
+   //定义路由
+   routes: <String, WidgetBuilder> {
+     '/a': (BuildContext context) => MyPage(title: 'page A'),
+     '/b': (BuildContext context) => MyPage(title: 'page B'),
+     '/c': (BuildContext context) => MyPage(title: 'page C'),
+   },
+ ));
+}
+
+//跳转
+Navigator.of(context).pushNamed('/b');
+```
 
 
 
 
 
+
+
+## 三、动画
+
+```dart
+class _MyFadeTest extends State<MyFadeTest> with TickerProviderStateMixin {
+  late AnimationController controller;  //控制暂停、播放、停止、逆向动画
+  late CurvedAnimation curve;   //曲线插值，计算用于替换控制器默认先行动画的曲线值
+
+  @override
+  void initState() {
+    super.initState();
+    controller = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this, //必备属性，垂直同步
+    );
+    curve = CurvedAnimation(
+      parent: controller,
+      curve: Curves.easeIn,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.title),
+      ),
+      body: Center(
+        child: FadeTransition(  //不透明度动画类
+          opacity: curve,  //把动画赋值给某个Widget的动画属性
+          child: FlutterLogo(
+            size: 100.0,
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        tooltip: 'Fade',
+        onPressed: () {
+          controller.forward(); //开启动画
+        },
+        child: Icon(Icons.brush),
+      ),
+    );
+  }
+}
+
+```
 
 
 
