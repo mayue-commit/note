@@ -1,4 +1,4 @@
-一、Widget
+# 一、Widget
 
 Flutter中，几乎所有的对象都是一个`Widget`，它不仅可以表示UI元素，也可以表示一些功能性的组件如：用于手势检测的 `GestureDetector widget`、用于应用主题数据传递的`Theme`等等。
 
@@ -114,7 +114,7 @@ class _MyApppState extends State<MyApp> {
     String data = "我好帅!";
 
     //延迟3秒更新内容
-    _MyApppState() {
+    _MyApppState() {0-
         Future.delayed(Duration(seconds: 3)).then((s) {
             this.data = "我是最帅的!";
             setState(() {
@@ -526,6 +526,57 @@ SizedBox(height: 50,),
 
 
 
+### 6.TextField
+
+```dart
+class TextFiledState extends State<HomeContent>{
+
+  var _usernameContro=TextEditingController();
+
+
+  @override
+  void initState() {
+    _usernameContro.text="初始值";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        TextField(
+          decoration: InputDecoration(
+            //前面带个ICon
+            icon: Icon(Icons.input),
+            hintText: "提示文字",
+            labelText: "用户名",
+            //带边框的
+            border: OutlineInputBorder(),
+          ),
+          controller: _usernameContro, //绑定控制器，绑定后和_usernameContro.text的值一致
+          maxLines: 1,
+          //密码显示方式
+          // obscureText: true,
+
+          //改变监听
+          onChanged: (value){
+          },
+        ),
+        RaisedButton(onPressed: (){
+          _usernameContro.text='hel';
+          print('${_usernameContro.text}');
+        },
+        child: Text("获取用户名"),),
+      ],
+    );
+  }
+}
+
+```
+
+
+
+
+
 
 
 
@@ -558,7 +609,7 @@ SizedBox(height: 50,),
 Container(
     child: Text('你好'),
     height: 300.0,
-    width: 300.0,
+    width: 300.0, //double.infinity 和外层容器一样大
     //外边距
     padding: EdgeInsets.all(10),
     //内边距
@@ -940,6 +991,41 @@ Positioned(
 ```
 
 
+
+
+
+#### ⑤GridView
+
+```dart
+class layoutDemo extends StatelessWidget {
+  Widget _getData(context, index) {
+    return Container(
+      child: Column(
+        children: [
+          Image(
+            width: 50,
+            image: AssetImage("assets/QQ.png"),
+          ),
+          Text("hello"),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+        scrollDirection: Axis.vertical,  //滚动方向
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 5, //每行个数
+          mainAxisSpacing: 10.0, //主间距（垂直）
+          crossAxisSpacing: 10.0, //次间距（水平）
+        ),
+        itemBuilder: _getData,
+        itemCount: 22);
+  }
+}
+```
 
 
 
