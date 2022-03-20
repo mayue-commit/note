@@ -148,7 +148,7 @@ class _MyApppState extends State<MyApp> {
 
 <img src="flutter.assets/image-20220306205828351.png" alt="image-20220306205828351" style="zoom:50%;" />
 
-- initState：当Widget第一次插入到Widget树时会被调用，对于每一个State对象，Flutter framework只会调用一次该回调
+- initState：当Widget第一次插入到Widget树时会被调用，对于每一个State对象，Flutter framework只会调用一次该回调。
 - didChangeDependencies：在initState()之后立刻调用，当依赖的InheritedWidget rebuild,会触发此接口被调用
 - build：绘制界面，当setState触发的时候会再次被调用
 - didUpdateWidget：状态改变的时候会调用该方法，比如调用了setState
@@ -574,6 +574,106 @@ class TextFiledState extends State<HomeContent>{
 ```
 
 
+
+
+
+### 7.单选/多选框
+
+多选框：
+
+```dart
+var flag=false;
+
+Checkbox(
+    value: this.flag,
+    onChanged: (value) {
+        setState(() {
+            this.flag = value!;
+        });
+    },
+)
+```
+
+
+
+
+
+单选框：
+
+配合enum类的使用
+
+```dart
+enum Sex { man, woman }
+
+class MyStatefulWidget extends StatefulWidget {
+  const MyStatefulWidget({Key? key}) : super(key: key);
+
+  @override
+  State<MyStatefulWidget> createState() => _MyStatefulWidgetState();
+}
+
+class _MyStatefulWidgetState extends State<MyStatefulWidget> {
+  Sex? _chooseSex = Sex.man; //默认值
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        Text('男'),
+        Radio<Sex>(
+          value: Sex.man,
+          groupValue: _chooseSex,
+          onChanged: (Sex? value) {
+            setState(
+              () {
+                _chooseSex = value;
+              },
+            );
+          },
+        ),
+        const Text('女'),
+        Radio<Sex>(
+          value: Sex.woman,
+          groupValue: _chooseSex,
+          onChanged: (Sex? value) {
+            setState(
+              () {
+                _chooseSex = value;
+              },
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+```
+
+
+
+
+
+### 8.控制显示与隐藏
+
+Offstage
+
+```dart
+Offstage(
+    offstage: !_isHide, //flase显示，true隐藏
+    child: new Center(child: CircularProgressIndicator()), //圆形的指示器
+),
+```
+
+
+
+Visibility
+
+```dart
+Visibility(
+    visible: false,//true显示，flase隐藏
+    child: Text("hello"),
+),
+```
 
 
 
@@ -1031,11 +1131,76 @@ class layoutDemo extends StatelessWidget {
 
 
 
+## 4、手势
+
+使用 GestureDetector 可以监听非常多的手势，例如：
+
+- Tap
+  - `onTapDown` - 一个可能产生点击事件的指针触摸到屏幕的特定位置。
+  - `onTapUp` - 一个产生了点击事件的指针停止触摸屏幕的特定位置。
+  - `onTap` - 一个点击事件已经发生。
+  - `onTapCancel` - 之前触发了 `onTapDown` 事件的指针不会产生点击事件。
+- Double tap
+  - `onDoubleTap` - 用户在屏幕同一位置连续快速地点击两次。
+- Long press
+  - `onLongPress` - 指针在屏幕的同一位置保持了一段较长时间的触摸状态。
+- Vertical drag
+  - `onVerticalDragStart` - 指针已经触摸屏幕并可能开始垂直移动。
+  - `onVerticalDragUpdate` - 触摸屏幕的指针在垂直方向移动了更多的距离。
+  - `onVerticalDragEnd` - 之前和屏幕接触并垂直移动的指针不再继续和屏幕接触，并且在和屏幕停止接触的时候以一定的速度移动。
+- Horizontal drag
+  - `onHorizontalDragStart` - 指针已经触摸屏幕并可能开始水平移动。
+  - `onHorizontalDragUpdate` - 触摸屏幕的指针在水平方向移动了更多的距离。
+  - `onHorizontalDragEnd` - 之前和屏幕接触并水平移动的指针不再继续和屏幕接触，并且在和屏幕停止接触的时候以一定的速度移动。
 
 
 
 
-## 二、路由
+
+
+
+
+
+# 二、网络请求
+
+http框架：
+
+
+
+pubspec.yaml中申明：
+
+```yaml
+dependencies:
+	http: ^0.11.3+16
+```
+
+
+
+发起网络请求：
+
+```dart
+Future<void> loadData() async {
+    var dataURL = Uri.parse('https://jsonplaceholder.typicode.com/posts');
+    http.Response response = await http.get(dataURL);
+	//解析数据，自动转成JSON
+    var data = jsonDecode(response.body);
+    print('data=$data');
+}
+```
+
+
+
+
+
+
+
+
+
+# 其他部分
+
+
+
+## 路由
 
 ```dart
 void main() {
@@ -1060,7 +1225,7 @@ Navigator.of(context).pushNamed('/b');
 
 
 
-## 三、动画
+## 动画
 
 ```dart
 class _MyFadeTest extends State<MyFadeTest> with TickerProviderStateMixin {
@@ -1071,12 +1236,12 @@ class _MyFadeTest extends State<MyFadeTest> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     controller = AnimationController(
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(milliseconds: 2000), //持续时间
       vsync: this, //必备属性，垂直同步
     );
     curve = CurvedAnimation(
-      parent: controller,
-      curve: Curves.easeIn,
+      parent: controller,	//赋予控制器
+      curve: Curves.easeIn, //动画类别
     );
   }
 
@@ -1095,7 +1260,6 @@ class _MyFadeTest extends State<MyFadeTest> with TickerProviderStateMixin {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        tooltip: 'Fade',
         onPressed: () {
           controller.forward(); //开启动画
         },
