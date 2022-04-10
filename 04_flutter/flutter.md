@@ -1196,27 +1196,147 @@ Future<void> loadData() async {
 
 
 
-# 其他部分
 
 
 
-## 路由
+
+# 三、动画
+
+Flutter中的动画系统基于`Animation`对象的，和UI渲染没有任何关系。Animation是一个抽象类，就相当于一个定时器，它用于保存动画的插值和状态，并执行数值的变化。widget可以在`build`函数中读取`Animation`对象的当前值， 并且可以监听动画的状态改变。
+
+
+
+## 1、AnimationController
+
+​	AnimationController用于控制动画，它包含动画的启动`forward()`、停止`stop()` 、反向播放 `reverse()`等方法。AnimationController会在动画的每一帧，就会生成一个新的值。默认情况下，AnimationController在给定的时间段内线性的生成从0.0到1.0（默认区间）的数字。
 
 ```dart
-void main() {
- runApp(MaterialApp(
-   home: MyAppHome(), // Becomes the route named '/'.
-   //定义路由
-   routes: <String, WidgetBuilder> {
-     '/a': (BuildContext context) => MyPage(title: 'page A'),
-     '/b': (BuildContext context) => MyPage(title: 'page B'),
-     '/c': (BuildContext context) => MyPage(title: 'page C'),
-   },
- ));
+AnimationController controller = AnimationController( 
+ duration: const Duration(milliseconds: 2000), //动画时间
+ lowerBound: 10.0,	//生成数字的区间 
+ upperBound: 20.0,	//10.0 - 20.0
+ vsync: this  //TickerProvider 动画驱动器提供者
+);
+```
+
+> 动画状态监听：在forword结束之后状态为completed。在reverse结束之后状态为dismissed
+
+
+
+## 2、Ticker
+
+Ticker的作用是添加屏幕刷新回调，每次屏幕刷新都会调用`TickerCallback`。使用Ticker来驱动动画会防止屏幕外动画（动画的UI不在当前屏幕时，如锁屏时）消耗不必要的资源。因为Flutter中屏幕刷新时会通知Ticker，锁屏后屏幕会停止刷新，所以Ticker就不会再触发。最简单的做法为将`SingleTickerProviderStateMixin`添加到State的定义中。
+
+```dart
+//混入了SingleTickerProviderStateMixin
+class _AnimWidgetState extends State<AnimWidget> with SingleTickerProviderStateMixin {
+  late AnimationController controller;
+  bool forward = true;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = AnimationController(
+      // 动画的时长
+      duration: Duration(milliseconds: 2000),
+      lowerBound: 10.0,
+      upperBound: 100.0,
+      // 提供 vsync 最简单的方式，就是直接混入 SingleTickerProviderStateMixin
+      // 如果有多个AnimationController，则使用TickerProviderStateMixin。
+      vsync: this,
+    );
+    //状态修改监听
+    controller
+      ..addStatusListener((AnimationStatus status) {
+        debugPrint("状态:$status");
+      })
+      ..addListener(() {
+        setState(() => {});
+      });
+
+    debugPrint("controller.value:${controller.value}");
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: <Widget>[
+        Container(
+          width: controller.value,  //使用contrller中的值
+          height: controller.value,
+          color: Colors.blue,
+        ),
+        RaisedButton(
+          child: Text("播放"),
+          onPressed: () {
+            if (forward) {
+              controller.forward();  //播放
+            } else {
+              controller.reverse();	 //反向播放
+            }
+            forward = !forward;
+          },
+        ),
+        RaisedButton(
+          child: Text("停止"),
+          onPressed: () {
+            controller.stop(); //停止
+          },
+        )
+      ],
+    );
+  }
 }
 
-//跳转
-Navigator.of(context).pushNamed('/b');
+```
+
+
+
+
+
+## 3、Tween
+
+类似补间动画，指定开头和结尾值，中间的值由编译器计算得出。
+
+
+
+​	默认情况下，`AnimationController`对象值为:double类型，范围是0.0到1.0 。如果我们需要不同的范围或不同的数据类型，则可以使用Tween来配置动画以生成不同的范围或数据类型的值。要使用Tween对象，需要调用其`animate()`方法，然后传入一个控制器对象，同时动画过程中产生的数值由`Tween`的`lerp`方法决定。
+
+```dart
+class _AnimWidgetState extends State<AnimWidget> with SingleTickerProviderStateMixin {
+  late AnimationController controller;
+  bool forward = true;
+  late Tween<Color?> tween;
+
+  @override
+  void initState() {
+    super.initState();
+
+    controller = AnimationController(
+      duration: Duration(milliseconds: 2000),
+      vsync: this,
+    );
+    //使用Color
+    tween = ColorTween(begin: Colors.blue, end: Colors.yellow);
+    //添加动画值修改监听
+    tween.animate(controller)..addListener(() => setState(() {}));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: <Widget>[
+        Container(
+          width: 100,
+          height: 100,
+          //获取动画当前值
+          color: tween.evaluate(controller),
+        ),
+      ],
+    );
+  }
+}
+
 ```
 
 
@@ -1225,7 +1345,13 @@ Navigator.of(context).pushNamed('/b');
 
 
 
-## 动画
+
+
+
+
+## 4、Curve
+
+动画过程默认是线性的(匀速)，如果需要非线形的，比如：加速的或者先加速后减速等。Flutter中可以通过Curve（曲线）来描述动画过程。
 
 ```dart
 class _MyFadeTest extends State<MyFadeTest> with TickerProviderStateMixin {
@@ -1241,7 +1367,7 @@ class _MyFadeTest extends State<MyFadeTest> with TickerProviderStateMixin {
     );
     curve = CurvedAnimation(
       parent: controller,	//赋予控制器
-      curve: Curves.easeIn, //动画类别
+      curve: Curves.easeIn, //插值器类别
     );
   }
 
@@ -1268,10 +1394,15 @@ class _MyFadeTest extends State<MyFadeTest> with TickerProviderStateMixin {
     );
   }
 }
-
 ```
 
 
+
+
+
+## 5、AnimatedWidget
+
+AnimatedWidget类，自动调用`setState()`，可以达到不更新整个Widget树的条件下刷新页面。
 
 
 
