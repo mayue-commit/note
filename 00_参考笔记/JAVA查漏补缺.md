@@ -2216,7 +2216,7 @@ IO流是每次读取单个字节，缓冲流则是读取一个缓冲区的数组
 
 练习：
 
-```
+```java
     public static void main(String[] args) {
         try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream("c.txt"));) {
             bos.write("我存了数据".getBytes());

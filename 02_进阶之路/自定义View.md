@@ -2,6 +2,25 @@
 
 # 一、自定义View
 
+关于paint和canvas：
+
+paint 可以设置画笔的颜色，抗锯齿，文字大小，样式等等
+
+canvas中封装了不同的方法，可以画bitmap，各类形状，文字等。另外，canvas是分层的，并且能够裁剪。
+
+```java
+canvas.save();
+//这之间的代码在一个图层
+canvas.restore();
+
+canvas.clipRect(rect); //裁剪一个形状，只显示形状内的内容
+canvas.clipOutRect(rect); //挖一个洞，显示区域外的内容
+```
+
+
+
+
+
 ## 0、重要函数列表
 
 View的函数：
@@ -482,6 +501,10 @@ canvas.drawBitmap(backgroundBitmap, 0, 0, paint);
 
 
 
+
+
+
+
 # 二、经典案例
 
 ## eg1、逐帧绘制动画
@@ -747,15 +770,164 @@ public class FlowLayout extends ViewGroup {
 
 
 
+## eg3、将文字绘制到中心
+
+如何将文字绘制到一个View的中心？
+
+```java
+//绘制文字
+Paint paint = new Paint();
+paint.setTextSize(80);
+//文字居中对其显示
+paint.setTextAlign(Paint.Align.CENTER);
+//通过xy坐标设置位置
+canvas.drawText(mText,getWidth()/2,getHeight()/2,paint);
+```
+
+但此时文字并没在view的正中心，这是因为baseLine。baseline 是文字的基准线，大概是四线三格中的第三条线的位置。drawText的Y坐标，是baseLine 的Y 坐标
+
+![image-20220614225317626](%E8%87%AA%E5%AE%9A%E4%B9%89View.assets/image-20220614225317626.png)
+
+
+
+想要改变，这个baseLine，则需要用到`Paint.FontMetrics`，它记载了四个参数：
+
+```java
+public float top;  //从baseline到文字最顶端的高度
+public float bottom; 
+public float ascent; //从baseline到文字的真实高度
+public float descent;
+public float leading;//额外行间距，上下相邻的两行，top和bottom的之间的距离
+```
+
+![image-20220613232624267](%E8%87%AA%E5%AE%9A%E4%B9%89View.assets/image-20220613232624267.png)
+
+由于android 坐标系，上负下正，文字的高度为 `(descent-ascent )`
+
+如果以文字的Y轴中心点绘制，文字的Y坐标为：getHeight() / 2 +(descent-ascent )/2
+
+以中心点计算文字高度和以baseline计算文字高度，相差了descent长度，需要向上移动  descent 个单位， 因此Y的真正坐标为：
+
+==getHeight() / 2 - (descent-ascent )/2-descent==
+
+```java
+private void drawCenterText(final Canvas canvas) {
+    canvas.save();
+    Paint paint = new Paint();
+    paint.setTextSize(80);
+    float X = getWidth() / 2;
+    paint.setTextAlign(Paint.Align.CENTER);
+    Paint.FontMetrics fontMetrics = paint.getFontMetrics();
+    //计算真实Y坐标
+    float Y = getHeight() / 2 - (fontMetrics.descent + fontMetrics.ascent) / 2;
+    canvas.drawText(mText, X, Y, paint);
+    canvas.restore();
+}
+```
 
 
 
 
 
+## eg4、文字渐变效果
+
+有了eg3的知识点，就能做到绘制文字的渐变效果。注意：
+
+1、尽量不要绘制一个像素点，绘制次数过多时，加载可能出现卡顿
+
+```java
+public class SimpleColorChangeTextView extends AppCompatTextView {
+    private String mText = "ABgI";//成员变量
+    private float mPercent = 0.5f;
+    Paint paint;
+    private float textX; //文字左X坐标
+    private float textY; //文字左Y坐标
+    private float textWidth;
+    Paint.FontMetrics fontMetrics;
+    int bgColor = Color.BLACK;
+    int foreColor = Color.RED;
+    
+    public SimpleColorChangeTextView(Context context) {
+        super(context);
+        initPaint();
+    }
+
+    public SimpleColorChangeTextView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        initPaint();
+    }
+
+    public SimpleColorChangeTextView(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        initPaint();
+    }
+
+    private void initPaint() {
+        paint = new Paint();
+        paint.setStyle(Paint.Style.FILL);
+        paint.setAntiAlias(true);
+        paint.setTextSize(80);
+        paint.setTextAlign(Paint.Align.LEFT);
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        //计算文字的宽度，起始位置
+        textWidth = paint.measureText(mText);
+        fontMetrics = paint.getFontMetrics();
+        textX = getMeasuredWidth() / 2 - textWidth / 2;
+        textY = getMeasuredHeight() / 2 - (fontMetrics.descent + fontMetrics.ascent) / 2;
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        drawEndArea(canvas);
+        drawPainArea(canvas);
+    }
+
+    //绘制前景色
+    private void drawPainArea(final Canvas canvas) {
+        canvas.save();
+        paint.setColor(foreColor);
+        float endX = textX + textWidth * mPercent;
+        Rect rect = new Rect((int) textX, 0, (int) endX, getHeight());
+        canvas.clipRect(rect);
+        canvas.drawText(mText, textX, textY, paint);
+        canvas.restore();
+    }
+
+    //绘制背景色
+    private void drawEndArea(final Canvas canvas) {
+        canvas.save();
+        //裁剪区域 起时X坐标
+        float startX = textX + textWidth * mPercent;
+        paint.setColor(bgColor);
+        Rect rect = new Rect((int) startX, 0, getWidth(), getHeight());
+        canvas.clipRect(rect);
+        canvas.drawText(mText, textX, textY, paint);
+        canvas.restore();
+    }
+
+   
+	//设置相关属性
+    public void setPercent(float mPercent) {
+        this.mPercent = mPercent;
+    }
 
 
+    public void setTextStyle(int bgColor, int foreColor, int size) {
+        this.bgColor = bgColor;
+        this.foreColor = foreColor;
+        paint.setTextSize(size);
+    }
 
-
+    public void setText(String text) {
+        this.mText = text;
+    }
+}
+```
 
 
 
