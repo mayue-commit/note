@@ -937,3 +937,408 @@ public class SimpleColorChangeTextView extends AppCompatTextView {
 
 
 
+
+
+
+
+
+
+
+
+# 三、RV.Adapter
+
+## 一、分割线
+
+可以继承RecyclerView.ItemDecoration，自定义想要的分割线样式
+
+
+
+重写方法讲解：
+
+getItemOffsets：预留出每个子Item之间的空隙
+
+```java
+ @Override
+    public void getItemOffsets(@NonNull Rect outRect, @NonNull View view, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
+        super.getItemOffsets(outRect, view, parent, state);
+
+        if (parent.getAdapter() instanceof StarAdapter) {
+            StarAdapter adapter = (StarAdapter) parent.getAdapter();
+            int position = parent.getChildLayoutPosition(view);
+            // 怎么判断 自定义方法，判断是否是头部
+            boolean isGroupHeader = adapter.isGourpHeader(position);
+            if (isGroupHeader) {
+                // 如果是头部，预留更大的地方
+                outRect.set(0, groupHeaderHeight, 0, 0);
+            } else {
+                // 1像素
+                outRect.set(0, 4, 0, 0);
+            }
+        }
+    }
+```
+
+onDraw：绘制分割线的样式，会被Item挡住
+
+```java
+ @Override
+    public void onDraw(@NonNull Canvas c, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
+        super.onDraw(c, parent, state);
+        if (parent.getAdapter() instanceof StarAdapter) {
+            StarAdapter adapter = (StarAdapter) parent.getAdapter();
+            // 当前屏幕的item个数
+            int count = parent.getChildCount();
+            int left = parent.getPaddingLeft();
+            int right = parent.getWidth() - parent.getPaddingRight();
+            for (int i = 0; i < count; i++) {
+                // 获取对应i的View
+                View view = parent.getChildAt(i);
+                // 获取View的布局位置
+                int position = parent.getChildLayoutPosition(view);
+                // 是否是头部
+                boolean isGroupHeader = adapter.isGourpHeader(position);
+                if (isGroupHeader && view.getTop() - groupHeaderHeight - parent.getPaddingTop() >= 0) {
+                    c.drawRect(left, view.getTop() - groupHeaderHeight, right, view.getTop(), headPaint);
+                    String groupName = adapter.getGroupName(position);
+                    textPaint.getTextBounds(groupName, 0, groupName.length(), textRect);
+                    c.drawText(groupName, left + 20, view.getTop() -
+                            groupHeaderHeight / 2 + textRect.height() / 2, textPaint);
+                } else if (view.getTop() - groupHeaderHeight - parent.getPaddingTop() >= 0) {
+                    // 分割线
+                    c.drawRect(left, view.getTop() - 4, right, view.getTop(), headPaint);
+                }
+            }
+        }
+    }
+```
+
+onDrawOver：超出部分会覆盖Item的区域
+
+```java
+ @Override
+    public void onDrawOver(@NonNull Canvas c, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
+        super.onDrawOver(c, parent, state);
+        if (parent.getAdapter() instanceof StarAdapter) {
+            StarAdapter adapter = (StarAdapter) parent.getAdapter();
+            // 返回可见区域内的第一个item的position
+            int position = ((LinearLayoutManager) parent.getLayoutManager()).findFirstVisibleItemPosition();
+            // 获取对应position的View
+            View itemView = parent.findViewHolderForAdapterPosition(position).itemView;
+            int left = parent.getPaddingLeft();
+            int right = parent.getWidth() - parent.getPaddingRight();
+            int top = parent.getPaddingTop();
+            // 当第二个是组的头部的时候
+            boolean isGroupHeader = adapter.isGourpHeader(position + 1);
+            if (isGroupHeader) {
+                int bottom = Math.min(groupHeaderHeight, itemView.getBottom() - parent.getPaddingTop());
+
+                c.drawRect(left, top, right, top + bottom, headPaint);
+                String groupName = adapter.getGroupName(position);
+                textPaint.getTextBounds(groupName, 0, groupName.length(), textRect);
+
+                // 绘制文字的高度不能超出区域
+                c.clipRect(left, top, right, top + bottom);
+
+                c.drawText(groupName, left + 20, top + bottom
+                        - groupHeaderHeight / 2 + textRect.height() / 2, textPaint);
+            } else {
+                c.drawRect(left, top, right, top + groupHeaderHeight, headPaint);
+                String groupName = adapter.getGroupName(position);
+                textPaint.getTextBounds(groupName, 0, groupName.length(), textRect);
+                c.drawText(groupName, left + 20, top + groupHeaderHeight / 2 + textRect.height() / 2, textPaint);
+            }
+
+        }
+    }
+```
+
+
+
+
+
+
+
+
+
+# 四、CoordinatorLayout
+
+
+
+## 一、常用的嵌套布局
+
+用于实现嵌套滑动的最佳方案，可以在非侵入的方式实现相应的交互
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".coordinator.CoordinatorActivity">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fitsSystemWindows="true">
+
+        <com.google.android.material.appbar.CollapsingToolbarLayout
+            android:id="@+id/collapsing_toolbar_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_scrollFlags="scroll|exitUntilCollapsed|snap"
+            app:statusBarScrim="@android:color/transparent">
+			
+            <!--这里放入需要滑动的头部布局-->
+           
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fitsSystemWindows="true"
+                android:scaleType="centerCrop"
+                android:src="@drawable/images" />
+
+        </com.google.android.material.appbar.CollapsingToolbarLayout>
+
+        <!--这里放入不需要滑动的头部布局-->
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+
+    
+<!--这里可以加入任意节目上的元素，默认左上角，和framelayout相似-->
+       
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
+```
+
+
+
+
+
+### 1、AppBarLayout
+
+它的子view上设置**app:layout_scrollFlags**属性或者是在代码中调用`setScrollFlags()`才能实现子View的滚动效果
+
+- scroll：所有想滚动出屏幕的view都需要设置这个flag， 没有设置这个flag的view将被固定在屏幕顶部。
+- enterAlways：这个flag让任意向下的滚动都会导致该view变为可见，启用快速“返回模式”。
+- enterAlwaysCollapsed：假设你定义了一个最小高度（minHeight）同时enterAlways也定义了，那么view将在到达这个最小高度的时候开始显示，并且从这个时候开始慢慢展开，当滚动到顶部的时候展开完。
+- exitUntilCollapsed：当你定义了一个minHeight，此布局将在滚动到达这个最小高度的时候折叠。
+- snap：当一个滚动事件结束，如果视图是部分可见的，那么它将被滚动到收缩或展开。例如，如果视图只有底部25%显示，它将折叠。相反，如果它的底部75%可见，那么它将完全展开。
+
+
+
+### 2、CollapsingToolbarLayout
+
+通过**app:contentScrim**设置折叠时工具栏布局的颜色，默认contentScrim是colorPrimary的色值
+
+通过**app:statusBarScrim**设置折叠时状态栏的颜色。默认statusBarScrim是colorPrimaryDark的色值。
+
+CollapsingToolbarLayout的子布局有3种折叠模式（Toolbar中设置的**app:layout_collapseMode**）
+
+- off：默认属性，布局将正常显示，无折叠行为。
+- pin：CollapsingToolbarLayout折叠后，此布局将固定在顶部。
+- parallax：CollapsingToolbarLayout折叠时，此布局也会有视差折叠效果。
+
+> 当CollapsingToolbarLayout的子布局设置了parallax模式时，我们还可以通过app:layout_collapseParallaxMultiplier设置视差滚动因子，值为：0~1。
+
+
+
+
+
+## 二、Behavior
+
+CoordinatorLayout中子View的交互行为
+
+
+
+只要将Behavior绑定到CoordinatorLayout的直接子元素上，就能对触摸事件（touch events）、window insets、measurement、layout以及嵌套滚动（nested scrolling）等动作进行拦截。
+
+绑定方式：**App:layout_behavior**=”@string/appbar_scrolling_view_behavior”
+
+> 这种是RV上的属性，表示RV位于AppBarLayout下方，并共享滑动事件、
+
+
+
+XML中处理，指定当前的View的行为：
+
+```xml
+app:layout_behavior="com.example.testrun.coordinator.bean.MyBehaivor"
+```
+
+
+
+自定义一个和CoordinatorLayout 中具有交互行为的View：（这里是下拉和上滑，View对应的隐藏和显示处理）
+
+```java
+public class MyBehaivor extends CoordinatorLayout.Behavior<View> {
+
+
+    private boolean isVisible = true;
+    private boolean isAnimating = false;
+    private static final int MIN_SCROLL_DISTANCE = 15;
+
+    public MyBehaivor(Context context, AttributeSet attrs) {
+        super(context, attrs);
+    }
+
+
+    /**
+     * 依赖哪个被观察的View，
+     * @param parent
+     * @param child 被动变化的View
+     * @param dependency 依赖的View
+     * @return true 时为响应其变化
+     */
+    @Override
+    public boolean layoutDependsOn(@NonNull CoordinatorLayout parent, @NonNull View child, @NonNull View dependency) {
+        return super.layoutDependsOn(parent, child, dependency);
+    }
+
+    /**
+     * 当CoordinatorLayout开始滑动时会调用这个方法，任意与CoordinatorLayout通过behavior关联的控件都要响应此方法并返回true
+     * 如果返回false，控件将不会响应CoordinatorLayout的滑动事件。
+     *
+     * @param coordinatorLayout
+     * @param child             与CoordinatorLayout通过behavior关联的控件，即自己
+     * @param directTargetChild 直接目标，即滑动的控件
+     * @param target            依赖的View
+     * @param axes              CoordinatorLayout滑动方向，ViewCompat.SCROLL_AXIS_VERTICAL表示纵向滑动
+     *                          ViewCompat.SCROLL_AXIS_HORIZONTAL表示横向滑动
+     * @return
+     */
+    @Override
+    public boolean onStartNestedScroll(@NonNull CoordinatorLayout coordinatorLayout, @NonNull View child, @NonNull View directTargetChild, @NonNull View target, int axes, int type) {
+        //响应CoordinatorLayout的纵向滑动
+        return axes == ViewCompat.SCROLL_AXIS_VERTICAL;
+    }
+
+    /**
+     * CoordinatorLayout滑动状态更新时调用此方法
+     *
+     * @param coordinatorLayout
+     * @param child             与CoordinatorLayout通过behavior关联的控件，即自身
+     * @param target            依赖的View
+     * @param dx                手指水平方向滑动的距离，左滑dx>0 右滑dx<0
+     * @param dy                手指竖直方法滑动的距离，上滑dy>0 下滑dy<0
+     * @param consumed          实际已滑动的距离，consumed[0]表示水平距离，consumed[1]表示竖直距离；
+     *                          实际已滑动的距离总是小于或等于手指滑动的距离
+     */
+    @Override
+    public void onNestedPreScroll(@NonNull CoordinatorLayout coordinatorLayout, @NonNull View child, @NonNull View target, int dx, int dy, @NonNull int[] consumed, int type) {
+        if (dy > MIN_SCROLL_DISTANCE && isVisible && !isAnimating) {    //如果向上滑动，则隐藏底部控件
+            hideBottomView(child);
+        } else if (dy < -MIN_SCROLL_DISTANCE && !isVisible && !isAnimating) {  //如果向下滑动，则显示底部控件
+            showBottomView(child);
+        }
+    }
+
+
+    /**
+     * 滑动结束的回调事件
+     * @param coordinatorLayout
+     * @param child         与CoordinatorLayout通过behavior关联的控件，即自身
+     * @param target        依赖的View
+     * @param dxConsumed    当没有滚动到顶部或者底部的时候，x/y轴的滚动距离
+     * @param dyConsumed
+     * @param dxUnconsumed  当滚动到顶部或者底部的时候，x/y轴的滚动距离
+     * @param dyUnconsumed
+     * @param type
+     * @param consumed
+     */
+    @Override
+    public void onNestedScroll(@NonNull CoordinatorLayout coordinatorLayout, @NonNull View child, @NonNull View target, int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed, int type, @NonNull int[] consumed) {
+        super.onNestedScroll(coordinatorLayout, child, target, dxConsumed, dyConsumed, dxUnconsumed, dyUnconsumed, type, consumed);
+    }
+
+
+    /**
+     * 滑动的速度
+     * @param coordinatorLayout
+     * @param child
+     * @param target
+     * @param velocityX X轴滑动的速度
+     * @param velocityY Y轴滑动的速度
+     * @return
+     */
+    @Override
+    public boolean onNestedPreFling(@NonNull CoordinatorLayout coordinatorLayout, @NonNull View child, @NonNull View target, float velocityX, float velocityY) {
+        return super.onNestedPreFling(coordinatorLayout, child, target, velocityX, velocityY);
+    }
+
+    /**
+     * 重新摆放子View的位置
+     * @param parent 
+     * @param child
+     * @param layoutDirection
+     * @return
+     */
+    @Override
+    public boolean onLayoutChild(@NonNull CoordinatorLayout parent, @NonNull View child, int layoutDirection) {
+        return super.onLayoutChild(parent, child, layoutDirection);
+    }
+
+    /*自定义的空间处理*/
+    private void showBottomView(final View view) {
+        view.animate().translationY(0).setDuration(200).setListener(new Animator.AnimatorListener() {
+            @Override
+            public void onAnimationStart(Animator animator) {
+                isAnimating = true;
+                view.setVisibility(View.VISIBLE);
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animator) {
+                isAnimating = false;
+                isVisible = true;
+            }
+
+            @Override
+            public void onAnimationCancel(Animator animator) {
+                isAnimating = false;
+            }
+
+            @Override
+            public void onAnimationRepeat(Animator animator) {
+
+            }
+        }).start();
+    }
+
+    private void hideBottomView(final View view) {
+        view.animate().translationY(view.getHeight()).setDuration(200).setListener(new Animator.AnimatorListener() {
+            @Override
+            public void onAnimationStart(Animator animator) {
+                isAnimating = true;
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animator) {
+                isAnimating = false;
+                view.setVisibility(View.INVISIBLE);
+                isVisible = false;
+            }
+
+            @Override
+            public void onAnimationCancel(Animator animator) {
+                isAnimating = false;
+            }
+
+            @Override
+            public void onAnimationRepeat(Animator animator) {
+
+            }
+        }).start();
+    }
+}
+```
+
+
+
+
+

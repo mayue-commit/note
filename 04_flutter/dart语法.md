@@ -1,5 +1,41 @@
 # 一、基础语法
 
+
+
+## 0、类型转换
+
+dynamic 转换为 String
+
+```dart
+dynamic a = "hello";
+String str = a;
+```
+
+
+
+List<dynamic> 转换为 List<String>
+
+```dart
+ List<String> newlist= list.cast<String>().toList();
+```
+
+
+
+Map<String,dynamic> 转换 Map<String,String>
+
+```dart
+Map<String,dynamic> map={};
+map["a"]="a";
+
+Map<String,String> newMap =map.cast<String,String>();
+```
+
+
+
+
+
+
+
 ## 1、方法
 
 没有重载，方法也是对象，对应的类是Exception，方法也可以作为参数
