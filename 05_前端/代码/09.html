@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=<device-width>, initial-scale=1.0">
+    <title>Document</title>
+
+
+    <style>
+        li {
+            color: white;
+            padding-left: 20px;
+            line-height: 50px;
+            width: 150px;
+            height: 50px;
+            background-color: rgb(96, 96, 96);
+            /* block转为块元素 ，inline 转为行内元素 */
+            display: block;
+        }
+        
+        li:hover {
+            background-color: orange;
+        }
+        
+        body {
+            padding: 0px;
+            display: inline;
+        }
+        
+        div {
+            width: 500px;
+            height: 500px;
+            background-color: pink;
+            /* 背景图片，url 图片路径 */
+            background-image: url(img.png);
+            /* 平铺属性，默认平铺XY轴（即重复粘贴充满容器） */
+            background-repeat: no-repeat;
+            /* 图片的方位，可以跟精确单位和方位名词 ，方位名词又分为水平和垂直，只写一个代表在垂直方向水平居中*/
+            background-position: right;
+        }
+    </style>
+</head>
+
+
+
+<body>
+    <ul>
+        <li>手机</li>
+        <li>电话</li>
+        <li>笔记本</li>
+        <li>耳机</li>
+    </ul>
+
+    <div>
+
+    </div>
+</body>
+
+</html>

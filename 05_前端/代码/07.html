@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <!--action ：UTL  -->
+    <!--method : 方法  -->
+    <!--name : 表单的名字  -->
+    <form action="" method="" name="">
+        <!--type的取值： text 文本  name元素名称，value 元素的值-->
+        用户名： <input type="text" name="username" value="mayue" maxlength="6" />
+        <!--type的取值： password 密码 -->
+        <br> 密码： <input type="password" name="password" />
+        <!--type的取值： radio 单选按钮 -->
+
+        <br> 性别：
+        <!-- for 中的内容 对应要点击的控件的id -->
+        <label for="man">男</label> <input type="radio" id="man" name="sex" value="男" checked="checked" />
+        <label for="woman">女</label> <input type="radio" id="woman" name="sex" value="女" />
+        <!--type的取值： 复选框 checkbox -->
+        <br> 爱好： 吃饭 <input type="checkbox" name="hobby" value="吃饭" /> 睡觉 <input type="checkbox" name="hobby" value="睡觉" />
+
+        <!--type的取值：提交表单 submit  value在这里是按钮的文字 -->
+        <br> <input type="submit" value="注册" />
+        <!-- 还原表单元素的默认值 -->
+        <br> <input type="reset" value="重制" />
+        <br> <input type="button" value="普通按钮" />
+        <br> <input type="file" value="上传文件" />
+        <br>
+        <label>籍贯：</label> <select>
+            <option >北京</option>
+            <option>田径</option>
+            <option>非洲</option>
+            <option selected="selected">美国</option>
+        </select>
+        <br>
+        <label>文本域</label>
+        <!-- rows行数 cols每行显示字符数量 -->
+        <textarea rows="3" cols="20">请填写反馈内容</textarea>
+    </form>
+
+</body>
+
+</html>

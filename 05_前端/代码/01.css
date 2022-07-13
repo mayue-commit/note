@@ -1,0 +1,26 @@
+.font_style {
+    /* 字体，英文的兼容性更好，多个字体用逗号分隔，挨个去找，都找不到用浏览器默认字体 */
+    font-family: '微软雅黑', 'Arial';
+    /* 字体大小，除了标题标签 */
+    font-size: 16px;
+    /*  字体粗细 也可以设置bold*/
+    font-weight: 400;
+    /* 斜体 normal 正常*/
+    font-style: italic;
+    /* 对齐方式 */
+    text-align: top;
+    /* 文字装饰，上划线：overline  下划线underline  中划线 through  不要线 none */
+    text-decoration: none;
+    /* 首行缩进  1em = 一个字体的大小*/
+    text-indent: 2em;
+    /* 行间距 */
+    line-height: 50px;
+}
+
+ul>li {
+    color: pink;
+}
+
+.nav ol li {
+    color: aqua;
+}

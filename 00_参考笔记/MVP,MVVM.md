@@ -488,12 +488,14 @@ MA：
 
 ```java
 public class MainActivity extends AppCompatActivity {
-
+ 	ActivityMainBinding activityMainBinding;
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //获取布局的方式要改变
-        ActivityMainBinding activityMainBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
+        //绑定布局
+        activityMainBinding = ActivityCoordinatorBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
         //给布局中的User设置对象
         activityMainBinding.setUser(new User("张三"));
     }

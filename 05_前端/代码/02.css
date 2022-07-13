@@ -1,0 +1,15 @@
+/* 所有的div和p标签都使用 */
+
+div,
+p {
+    color: brown;
+}
+
+
+/* div和p以及.nav下面的li标签使用 */
+
+div,
+p,
+.nav li {
+    color: rgb(39, 25, 198);
+}

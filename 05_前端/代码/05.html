@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <!-- cellspacing 单元格之间的距离，（边线中间的距离） -->
+    <!-- cellpadding 内容距离边框的距离 -->
+    <table align="center" border="1" cellpadding="20" cellspacing="0" width="500" height="200">
+
+
+        <tr>
+            <!-- 表头 居中加粗-->
+            <th>姓名</th>
+            <th>年龄</th>
+            <th>生日</th>
+            <th>地址</th>
+        </tr>
+        <tr>
+            <!-- 列的内容 -->
+            <td>列</td>
+            <td>列</td>
+            <td>列</td>
+            <td>列</td>
+        </tr>
+        <tr>
+            <td>列</td>
+            <td>列</td>
+            <td>列</td>
+            <td>列</td>
+        </tr>
+    </table>
+
+
+
+    <table align="center" border="1" cellpadding="20" cellspacing="0" width="500" height="200">
+
+
+        <thead>
+            <tr>
+                <!-- 表头 居中加粗-->
+                <th>姓名</th>
+                <th>年龄</th>
+                <th>生日</th>
+                <th>地址</th>
+                <th>测试</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            <tr>
+                <!-- 列的内容 -->
+                <td>列</td>
+                <td rowspan="2">列</td>
+                <td>列</td>
+                <td>列</td>
+                <td>列</td>
+            </tr>
+            <tr>
+                <td>列</td>
+                <td>列</td>
+                <td colspan="2">列</td>
+
+            </tr>
+        </tbody>
+
+    </table>
+
+</body>
+
+</html>
