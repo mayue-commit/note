@@ -1412,6 +1412,61 @@ AnimatedWidget类，自动调用`setState()`，可以达到不更新整个Widget
 
 
 
+# 四、路由导航
+
+
+
+注册路由：
+
+```
+runApp(GetMaterialApp(
+    home: Home(),
+    routes: <String, WidgetBuilder>{
+      '/a': (BuildContext context) => Home(),
+      '/BPage': (BuildContext context) => BPage(),
+      '/CPage': (BuildContext context) => CPage(),
+      '/DPage': (BuildContext context) => DPage(),
+    },
+  ));
+```
+
+
+
+跳转到D页面，并按返回键回到B页面：
+
+```da'r't
+ Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/DPage',
+                      ModalRoute.withName('/BPage'));dart
+```
+
+```
+                 Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (BuildContext context) =>DPage()),
+                      ModalRoute.withName('/BPage'));
+                },
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
