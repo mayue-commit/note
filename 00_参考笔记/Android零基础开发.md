@@ -10049,3 +10049,320 @@ fab.setOnClickListener(new View.OnClickListener() {
 
 需要注意的是：Snackbar会挡住悬浮按钮，如果想要提升体验，可以把主布局界面中的Framlayout改为CoordinatorLayout，它为加强版的Framlayout，可以监听所有子控件的各种事件，帮助我们做出最合理的响应。
 
+
+
+
+
+
+
+
+
+
+
+# 九、MVP的开发模式
+
+Model 应包含以下四个部分：
+
+- VO：视图对象，封装页面中所有的数据
+- DTO：数据传输对象，网络请求/IO流中
+- DO：领域对象，业务实体
+- PO：持久化存储的对象
+
+![Snipaste_2021-08-02_13-52-45](Android%E9%9B%B6%E5%9F%BA%E7%A1%80%E5%BC%80%E5%8F%91.assets/Snipaste_2021-08-02_13-52-45.png)
+
+MVP中，将Data和View层彻底分离，由Presenter中间层负责双方的交互通信（接口实现），Actvitiy的职责从MVC的 Controller +View 彻底解耦，变成了只需要进行控制UI的View层。Presenter中进行数据业务的分发处理，同时持有View层和Model层的接口引用。Model层完全负责数据的传输和处理工作。
+
+**处理逻辑**：View层需要展示某些数据时，先调用Presenter层的接口引用，Presenter层再调用Model层请求数据，Model层根据情况判断，回调Presenter层的方法，通知Presenter层的数据加载情况，最后Presenter层再调用View的接口，将数据返回并展示。
+
+
+
+- 优点：
+
+减少了Activity的职责，耦合度更低，方便进行接口测试，模块职责划分明确。
+
+- 缺点：
+
+每层都需要对应的接口和类，每次改动接口代价较高。
+
+
+
+
+
+### 实现逻辑：
+
+View向Model层请求数据逻辑：红线线
+
+Model层向View返回数据：蓝色线
+
+![MVP结构图](Android%E9%9B%B6%E5%9F%BA%E7%A1%80%E5%BC%80%E5%8F%91.assets/MVP%E7%BB%93%E6%9E%84%E5%9B%BE.png)
+
+需要注意P层的实现类中，一些接口对象的处理：
+
+因为View层的接口实现类为Activity，且数据请求是从View层调用P层，所以在Activity中实例化时，调用P层构造时直接传入this即可。
+
+Model层的接口实现类，需要new一个实例化对象。在调用login方法时，需要一个回调接口对象，P层实现了该接口，所以直接传入this即可。
+
+
+
+
+
+
+
+### 具体代码：
+
+#### 1.Model层
+
+User类：
+
+```java
+@Data
+public class User {
+    String username;
+    String password;
+}
+```
+
+接口：
+
+```java
+public interface LoginModel {
+    void login(User user, OnLoginFinishedListener listener);
+}
+```
+
+接口实现：
+
+```java
+public class LoginModelImpl implements LoginModel {
+    @Override
+    public void login(User user, final OnLoginFinishedListener listener) {
+        final String username = user.getUsername();
+        final String password = user.getPassword();
+        /*
+        * 方便起见，这里只简单模拟，为空则登录失败，其余均成功，并模拟延时效果
+        */
+        new Handler().postDelayed(new Runnable() {
+            boolean error = false;
+
+            @Override
+            public void run() {
+                if (TextUtils.isEmpty(username)) {
+                    listener.onUsernameError();
+                    error = true;
+                }
+                if (TextUtils.isEmpty(password)) {
+                    listener.onPasswordError();
+                    error = true;
+                }
+                if (!error) {
+                    listener.onSuccess();
+                }
+            }
+        }, 1000);
+    }
+}
+
+```
+
+
+
+#### 2.Presenter层
+
+请求接口：
+
+```java
+public interface LoginPresenter {
+    void validateCredentials(User user);
+
+    void onDestroy();
+}
+```
+
+回调接口：
+
+```java
+public interface OnLoginFinishedListener {
+    void onUsernameError();
+
+    void onPasswordError();
+
+    void onSuccess();
+}
+```
+
+实现类：
+
+```java
+public class LoginPresenterImpl implements LoginPresenter, OnLoginFinishedListener {
+    private LoginView loginView;
+    private LoginModel loginModel;
+
+    public LoginPresenterImpl(LoginView loginView) {
+        this.loginView = loginView;	  
+        this.loginModel = new LoginModelImpl();		//实例化Model层接口对象
+    }
+
+    @Override
+    public void validateCredentials(User user) {
+        if (loginView != null) {
+            loginView.showProgress();
+        }
+        loginModel.login(user, this);	//因为实现了所需接口，直接传入this即可
+    }
+
+    @Override
+    public void onDestroy() {
+        loginView = null;
+    }
+
+    @Override
+    public void onUsernameError() {
+        if (loginView != null) {
+            loginView.setUsernameError();
+            loginView.hideProgress();
+        }
+    }
+
+    @Override
+    public void onPasswordError() {
+        if (loginView != null) {
+            loginView.setPasswordError();
+            loginView.hideProgress();
+        }
+    }
+
+    @Override
+    public void onSuccess() {
+        if (loginView != null) {
+            loginView.showSuccess();
+        }
+    }
+}
+```
+
+
+
+#### 3.View层
+
+接口：
+
+```java
+public interface LoginView {
+    void showProgress();
+
+    void hideProgress();
+
+    void setUsernameError();
+
+    void setPasswordError();
+
+    void showSuccess();
+}
+```
+
+XML：省略控件宽高等非必须属性
+
+```xml
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".View.LoginActivity">
+
+    <EditText
+        android:id="@+id/ET_username"/>
+
+    <EditText
+        android:id="@+id/ET_password"/>
+
+    <ProgressBar
+        android:id="@+id/progress" />
+
+    <Button
+        android:onClick="login"
+        android:text="登录" />
+</LinearLayout>
+```
+
+Actvity：
+
+```java
+public class LoginActivity extends AppCompatActivity implements LoginView {
+    ProgressBar mProgressBar;
+    EditText ET_username, ET_password;
+    LoginPresenter mLoginPresenter;
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_login);
+
+        mProgressBar = findViewById(R.id.progress);
+        ET_username = findViewById(R.id.ET_username);
+        ET_password = findViewById(R.id.ET_password);
+        mLoginPresenter = new LoginPresenterImpl(this);		//P层接口对象的实例化，实现了所需接口，直接传入this即可
+        hideProgress();
+    }
+
+    @Override
+    public void showProgress() {
+        mProgressBar.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    public void hideProgress() {
+        mProgressBar.setVisibility(View.GONE);
+    }
+
+    @Override
+    public void setUsernameError() {
+        ET_username.setError("用户名错误");
+    }
+
+    @Override
+    public void setPasswordError() {
+        ET_password.setError("密码错误");
+    }
+
+    @Override
+    public void showSuccess() {
+        hideProgress();
+        startActivity(new Intent(this, MainActivity.class));
+        Toast.makeText(this, "登录成功", Toast.LENGTH_SHORT).show();
+    }
+
+    public void login(View view) {
+        //封装，调用接口请求Model层数据验证
+        User user = new User();
+        user.setUsername(ET_username.getText().toString());
+        user.setPassword(ET_password.getText().toString());
+        mLoginPresenter.validateCredentials(user);
+    }
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

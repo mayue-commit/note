@@ -1453,7 +1453,12 @@ runApp(GetMaterialApp(
 
 
 
+get 跳转
 
+```
+  Get.offUntil(GetPageRoute(page: () => DPage()),
+                      (route) => (route as GetPageRoute).routeName == '/BPage');
+```
 
 
 
