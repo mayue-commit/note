@@ -1453,11 +1453,191 @@ runApp(GetMaterialApp(
 
 
 
-get 跳转
+
+
+
+
+
+
+# 五、Get框架详解：
+
+
+
+## 1.可观察的Widget
+
+### 1.obs
+
+动态更新某个对象
+
+```dart
+var name = "".obs;
+
+GestureDetector(
+    onTap: () {
+        name.value = "jack";
+    },
+    child: Obx(() {
+        return Text("${name.value}");
+    }),
+)
+```
+
+
+
+
+
+
+
+### 2.Getx
+
+定义一个controller对象
+
+```dart
+class CountConroller extends GetxController{
+  final _count=0.obs;
+
+  get count => _count.value;
+
+  set count(value) {
+    _count.value = value;
+  }
+
+  add()=>_count.value++;
+}
+```
+
+
+
+使用controller构造需要变化的widget
+
+```dart
+class GetxTest extends StatelessWidget {
+  final controller = CountConroller();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("getX"),
+      ),
+      body: Column(
+        children: [
+          //定义传入的泛型类型
+          GetX<CountConroller>(
+            init: controller, //初始化对象是谁
+            //初始化操作，如同widget的生命周期
+            initState: (_) {
+              controller.count = 20;
+            },
+            //构建可变化的widget
+            builder: (_) {
+              return Text("value 1->${_.count}");
+            },
+          ),
+          ElevatedButton(
+              onPressed: () {
+                controller.add();
+              },
+              child: Text("增加且刷新"))
+        ],
+      ),
+    );
+  }
+}
+```
+
+
+
+### 1、GetX中的小函数
+
+```dart
+class CountConroller extends GetxController {
+  final _count = 0.obs;
+
+  get count => _count.value;
+
+  set count(value) {
+    _count.value = value;
+  }
+
+  add() => _count.value++;
+
+  //初始化的时候调用
+  @override
+  void onInit() {
+    super.onInit();
+
+    //oninit时 执行一次
+    once(_count, (value) {
+      print('once ' + value.toString());
+    });
+
+    //每次 obs的值改变都会调用
+    ever(_count, (value) {
+      print('ever ' + value.toString());
+    });
+
+    //防抖：1s内点击多次，只执行一次，取最后一次的值
+    debounce(
+      _count,
+      (value) {
+        print('debounce ' + value.toString());
+      },
+      time: Duration(seconds: 1),
+    );
+
+    //防抖：2s内点击多次，只执行一次，取第一次的值
+    interval(
+      _count,
+      (value) {
+        print('interval ' + value.toString());
+      },
+      time: Duration(seconds: 2),
+    );
+  }
+}
 
 ```
-  Get.offUntil(GetPageRoute(page: () => DPage()),
-                      (route) => (route as GetPageRoute).routeName == '/BPage');
+
+
+
+### 2、共享controller对象
+
+```
+  //传入一个CountConroller
+  final controller = Get.put<CountConroller>(CountConroller());
+  
+  //从get中获取一个CountConroller
+  final controll=Get.find<CountConroller>();
+```
+
+
+
+
+
+### 3.GetBuilder
+
+更加精细化的更新操作：
+
+```dart
+ 		GetBuilder<CountConroller>(
+            //指定一个id
+            id: "1",
+            //其他参数和Getx一样
+          ),
+          ElevatedButton(
+            onPressed: () {
+              controller.add();
+            },
+            child: Text("增加但不更新"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              //根据id更新
+              controller.update(["1"]);
+            },
+            child: Text("更新操作"),
+          ),
 ```
 
 
@@ -1467,6 +1647,109 @@ get 跳转
 
 
 
+
+### 4.GetView
+
+是简单的Controller + find 的组合，适用于只有一个controller的情况，省略了controller.find的操作
+
+```
+class Test2 extends GetView<CountConroller> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(),
+        body: Column(
+          children: [
+            ElevatedButton(
+              onPressed: () {
+                controller.add();
+              },
+              child: Obx(() {
+                return Text("${controller.count}");
+              }),
+            ),
+          ],
+        )
+    );
+  }
+}
+```
+
+
+
+
+
+
+
+### 5.binding
+
+用于全局的put懒加载配置
+
+设置一个binding对象
+
+```dart
+class DependencyLazyPutBinding implements Bindings {
+  @override
+  void dependencies() {
+    Get.lazyPut<CountConroller>(() => CountConroller());
+  }
+}
+```
+
+跳转时指定binding
+
+```
+ Get.to(Test2(),binding: DependencyLazyPutBinding());
+```
+
+目标page就可以直接Get.find拿到对应的controller对象
+
+```dart
+class Test2 extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(),
+        body: Column(
+          children: [
+            GetX<CountConroller>(
+              //定义传入的泛型类型
+              init: Get.find<CountConroller>(), //初始化对象是谁
+              //初始化操作，如同widget的生命周期
+              initState: (_) {
+                Get.find<CountConroller>().count = 20;
+              },
+              //构建可变化的widget
+              builder: (_) {
+                return Text("value 1->${_.count}");
+              },
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Get.find<CountConroller>().add();
+              },
+              child: Obx(() {
+                return Text("${Get.find<CountConroller>().count}");
+              }),
+            ),
+          ],
+        )
+    );
+  }
+}
+```
+
+> 坑：必须指定泛型类型，否则会报错
+
+
+
+
+
+
+
+
+
+## 2.网络请求
 
 
 

@@ -8,22 +8,34 @@
     <title>Document</title>
 
     <style>
-        div {
-            width: 500px;
-            height: 500px;
-            /* 位置坐标，X 和 Y ，一个可以为空，为空时默认另一个坐标为居中 */
-            background-position: left;
-            background-image: url(img.png);
-            background-repeat: no-repeat;
-            background-color: aqua;
-            /*scroll 滚动  fixed 固定 */
-            background-attachment: fixed;
+        .nav a {
+            display: inline-block;
+            width: 416px;
+            height: 153px;
+            background-color: pink;
+            text-align: center;
+            line-height: 120px;
+            color: white;
+            text-decoration: none;
+        }
+        
+        .nav .bg1 {
+            background: url(./imges/Snipaste_2022-07-26_23-25-47.png);
+        }
+        
+        .nav .bg1:hover {
+            background-image: url(./imges/img.png);
         }
     </style>
 </head>
 
 <body>
-    <div></div>
+    <div class="nav">
+        <a href="#" class="bg1">五彩导航</a>
+        <a href="#">五彩导航</a>
+        <a href="#">五彩导航</a>
+        <a href="#">五彩导航</a>
+    </div>
 </body>
 
 </html>
